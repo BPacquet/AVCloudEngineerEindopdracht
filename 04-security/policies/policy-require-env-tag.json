@@ -1,0 +1,40 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-09-01/policyDefinition.json#",
+  "name": "require-environment-tag",
+  "displayName": "Require tag 'Environment' on all resources",
+  "description": "Enforces the presence of the required 'Environment' tag on all resources. Allowed values: dev, tst, prd.",
+  "mode": "Indexed",
+  "metadata": {
+    "category": "Tags",
+    "version": "1.0.0",
+    "author": "delaware cloud practice"
+  },
+  "parameters": {
+    "effect": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Effect",
+        "description": "The effect determines what happens when the policy rule is evaluated to match"
+      },
+      "allowedValues": [
+        "Deny",
+        "Audit",
+        "Disabled"
+      ],
+      "defaultValue": "Deny"
+    }
+  },
+  "policyRule": {
+    "if": {
+      "allOf": [
+        {
+          "field": "tags['Environment']",
+          "exists": "false"
+        }
+      ]
+    },
+    "then": {
+      "effect": "[parameters('effect')]"
+    }
+  }
+}
