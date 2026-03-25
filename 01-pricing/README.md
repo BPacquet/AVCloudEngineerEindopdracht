@@ -191,7 +191,7 @@ BESPARING (Azure vs On-prem)                            €XX.XXX (XX%)
 
 ---
 
-_Ga verder naar [`../02-architecture/README.md`](/02-architecture/README.md)_
+_Ga verder naar [`../02-architecture/README.md`](../02-architecture/README.md)_
 
 ---
 

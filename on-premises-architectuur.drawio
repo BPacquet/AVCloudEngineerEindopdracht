@@ -1,0 +1,238 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.2.5 Chrome/138.0.7204.251 Electron/37.6.1 Safari/537.36" version="28.2.5">
+  <diagram id="contoso-onprem" name="Contoso Manufacturing — On-Premises Architectuur">
+    <mxGraphModel dx="1426" dy="961" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="1">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" value="Contoso Manufacturing NV — On-Premises Architectuur" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;fontColor=#C42828;" parent="1" vertex="1">
+          <mxGeometry x="300" y="20" width="1000" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="3" value="Huidige staat — End-of-Life omgeving | Status: ⚠️ Migratie vereist" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=11;fontColor=#3C3C3C;" parent="1" vertex="1">
+          <mxGeometry x="300" y="55" width="1000" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="10" value="INTERNET" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;fontColor=#3C3C3C;" parent="1" vertex="1">
+          <mxGeometry x="680" y="90" width="180" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="20" value="DMZ — 10.10.1.0/24" style="swimlane;startSize=30;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=11;fontColor=#3C3C3C;swimlaneLine=1;rounded=1;" parent="1" vertex="1">
+          <mxGeometry x="300" y="210" width="1000" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="21" value="&lt;b&gt;FortiGate Firewall&lt;/b&gt;&lt;br&gt;Perimeter security&lt;br&gt;&lt;font color=&#39;#7a7a7a&#39;&gt;FortiOS&lt;/font&gt;" style="shape=mxgraph.cisco.firewalls.firewall;fillColor=#C42828;strokeColor=#941914;fontColor=#3C3C3C;fontSize=10;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;html=1;" parent="20" vertex="1">
+          <mxGeometry x="130" y="50" width="60" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="22" value="&lt;b&gt;F5 BIG-IP&lt;/b&gt;&lt;br&gt;Load Balancer&lt;br&gt;&lt;font color=&#39;#C42828&#39;&gt;⚠️ EOL 2025&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;fontColor=#3C3C3C;" parent="20" vertex="1">
+          <mxGeometry x="440" y="50" width="140" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="23" value="HTTPS :443" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=9;fontColor=#666666;fontStyle=2;" parent="20" vertex="1">
+          <mxGeometry x="790" y="65" width="90" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="30" value="Web Tier — 10.10.2.0/24" style="swimlane;startSize=30;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;fontSize=11;fontColor=#3C3C3C;swimlaneLine=1;rounded=1;" parent="1" vertex="1">
+          <mxGeometry x="300" y="420" width="1000" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="31" value="&lt;b&gt;WEB01&lt;/b&gt;&lt;br&gt;Windows Server 2012 R2&lt;br&gt;IIS 8.5 | ASP.NET 4.7&lt;br&gt;4 vCPU / 16 GB RAM&lt;br&gt;&lt;font color=&#39;#C42828&#39;&gt;⚠️ EOL&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;fontColor=#3C3C3C;verticalAlign=middle;" parent="30" vertex="1">
+          <mxGeometry x="190" y="45" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="32" value="&lt;b&gt;WEB02&lt;/b&gt;&lt;br&gt;Windows Server 2012 R2&lt;br&gt;IIS 8.5 | ASP.NET 4.7&lt;br&gt;4 vCPU / 16 GB RAM&lt;br&gt;&lt;font color=&#39;#C42828&#39;&gt;⚠️ EOL&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;fontColor=#3C3C3C;verticalAlign=middle;" parent="30" vertex="1">
+          <mxGeometry x="620" y="45" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="40" value="App Tier — 10.10.2.0/24" style="swimlane;startSize=30;fillColor=#ffe6cc;strokeColor=#d6a733;fontStyle=1;fontSize=11;fontColor=#3C3C3C;swimlaneLine=1;rounded=1;" parent="1" vertex="1">
+          <mxGeometry x="300" y="640" width="1000" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="41" value="&lt;b&gt;APP01&lt;/b&gt;&lt;br&gt;Windows Server 2012 R2&lt;br&gt;8 vCPU / 32 GB RAM&lt;br&gt;&lt;font color=&#39;#C42828&#39;&gt;⚠️ EOL&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;fontColor=#3C3C3C;verticalAlign=middle;" parent="40" vertex="1">
+          <mxGeometry x="100" y="40" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="42" value="&lt;b&gt;APP02&lt;/b&gt;&lt;br&gt;Windows Server 2012 R2&lt;br&gt;8 vCPU / 32 GB RAM&lt;br&gt;&lt;font color=&#39;#C42828&#39;&gt;⚠️ EOL&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;fontColor=#3C3C3C;verticalAlign=middle;" parent="40" vertex="1">
+          <mxGeometry x="340" y="40" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="43" value=".NET Windows Services" style="swimlane;startSize=25;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;fontStyle=1;fontColor=#3C3C3C;rounded=1;" parent="40" vertex="1">
+          <mxGeometry x="580" y="30" width="380" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="44" value="⏱️ Scheduler Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;fontColor=#3C3C3C;" parent="43" vertex="1">
+          <mxGeometry x="20" y="35" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="45" value="⚙️ Processor Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;fontColor=#3C3C3C;" parent="43" vertex="1">
+          <mxGeometry x="140" y="35" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="46" value="📊 Reporter Service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;fontColor=#3C3C3C;" parent="43" vertex="1">
+          <mxGeometry x="260" y="35" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="50" value="Database Tier — 10.10.3.0/24" style="swimlane;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=11;fontColor=#3C3C3C;swimlaneLine=1;rounded=1;" parent="1" vertex="1">
+          <mxGeometry x="300" y="880" width="1000" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="51" value="SQL Server 2014 — Always On Availability Group" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=11;fontStyle=1;fontColor=#3C3C3C;" parent="50" vertex="1">
+          <mxGeometry x="250" y="35" width="500" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="52" value="&lt;b&gt;SQL01 — PRIMARY&lt;/b&gt;&lt;br&gt;Windows Server 2012 R2&lt;br&gt;SQL Server 2014&lt;br&gt;16 vCPU / 64 GB RAM&lt;br&gt;DB Size: ≈ 500 GB&lt;br&gt;&lt;font color=&#39;#C42828&#39;&gt;⚠️ End-of-Support&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;fontColor=#3C3C3C;verticalAlign=middle;" parent="50" vertex="1">
+          <mxGeometry x="180" y="60" width="190" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="53" value="&lt;b&gt;SQL02 — SECONDARY&lt;/b&gt;&lt;br&gt;Windows Server 2012 R2&lt;br&gt;SQL Server 2014&lt;br&gt;16 vCPU / 64 GB RAM&lt;br&gt;DB Size: ≈ 500 GB&lt;br&gt;&lt;font color=&#39;#C42828&#39;&gt;⚠️ End-of-Support&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;fontColor=#3C3C3C;verticalAlign=middle;" parent="50" vertex="1">
+          <mxGeometry x="630" y="60" width="190" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="54" value="Always On Sync" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#82b366;strokeWidth=2;fontColor=#3C3C3C;fontSize=9;fontStyle=2;endArrow=block;startArrow=block;startFill=0;endFill=0;" parent="50" source="52" target="53" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="55" value="💾 SAN Storage&lt;br&gt;iSCSI | 20 TB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;fontColor=#3C3C3C;" parent="50" vertex="1">
+          <mxGeometry x="870" y="75" width="110" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="60" value="Management — 10.10.4.0/24" style="swimlane;startSize=30;fillColor=#f5f5f5;strokeColor=#999999;fontStyle=1;fontSize=11;fontColor=#3C3C3C;swimlaneLine=1;rounded=1;" parent="1" vertex="1">
+          <mxGeometry x="300" y="1120" width="1000" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="61" value="&lt;b&gt;DC01&lt;/b&gt;&lt;br&gt;Windows Server 2016&lt;br&gt;Active Directory&lt;br&gt;DNS / GPO&lt;br&gt;4 vCPU / 8 GB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontColor=#3C3C3C;" parent="60" vertex="1">
+          <mxGeometry x="30" y="40" width="150" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="62" value="&lt;b&gt;SCOM01&lt;/b&gt;&lt;br&gt;Windows Server 2016&lt;br&gt;SCOM 2012&lt;br&gt;4 vCPU / 16 GB&lt;br&gt;&lt;font color=&#39;#C42828&#39;&gt;⚠️ EOL&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;fontColor=#3C3C3C;" parent="60" vertex="1">
+          <mxGeometry x="220" y="40" width="150" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="63" value="&lt;b&gt;BACKUP01&lt;/b&gt;&lt;br&gt;Windows Server 2019&lt;br&gt;Veeam B&amp;R&lt;br&gt;4 vCPU / 8 GB&lt;br&gt;(enkel lokaal)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;fontColor=#3C3C3C;" parent="60" vertex="1">
+          <mxGeometry x="420" y="40" width="150" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="64" value="&lt;b&gt;NAS01&lt;/b&gt;&lt;br&gt;UNC Shares&lt;br&gt;\\NAS01\rapporten&lt;br&gt;Backup target" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;fontColor=#3C3C3C;" parent="60" vertex="1">
+          <mxGeometry x="620" y="40" width="150" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="65" value="&lt;b&gt;Exchange&lt;/b&gt;&lt;br&gt;On-Premises&lt;br&gt;SMTP Relay&lt;br&gt;Uitgaande mail" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontColor=#3C3C3C;" parent="60" vertex="1">
+          <mxGeometry x="820" y="40" width="150" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="70" value="MPLS&lt;br&gt;(Proximus)" style="shape=cloud;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=10;fontStyle=1;fontColor=#3C3C3C;" parent="1" vertex="1">
+          <mxGeometry x="90" y="1000" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="71" value="🏭 Gent (HQ)&lt;br&gt;≈ 250 gebruikers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontColor=#3C3C3C;" parent="1" vertex="1">
+          <mxGeometry x="50" y="820" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="72" value="🏭 Luik&lt;br&gt;≈ 100 gebruikers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontColor=#3C3C3C;" parent="1" vertex="1">
+          <mxGeometry x="50" y="920" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="73" value="🏭 Hasselt&lt;br&gt;≈ 100 gebruikers" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontColor=#3C3C3C;" parent="1" vertex="1">
+          <mxGeometry x="50" y="1020" width="130" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="80" value="&lt;b&gt;SAP ERP&lt;/b&gt;&lt;br&gt;Extern systeem&lt;br&gt;REST/SOAP via MPLS&lt;br&gt;(nachtelijke batch)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;fontColor=#3C3C3C;" parent="1" vertex="1">
+          <mxGeometry x="1400" y="730" width="160" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="81" value="👤 Externe gebruikers&lt;br&gt;(Internet)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontColor=#3C3C3C;" parent="1" vertex="1">
+          <mxGeometry x="1400" y="90" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="90" value="Legenda" style="swimlane;startSize=25;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=11;fontColor=#3C3C3C;rounded=1;" parent="1" vertex="1">
+          <mxGeometry x="1370" y="210" width="240" height="430" as="geometry" />
+        </mxCell>
+        <mxCell id="91" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="90" vertex="1">
+          <mxGeometry x="15" y="40" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="92" value="End-of-Life (EOL)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#3C3C3C;" parent="90" vertex="1">
+          <mxGeometry x="55" y="40" width="165" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="93" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="90" vertex="1">
+          <mxGeometry x="15" y="75" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="94" value="Aandacht vereist" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#3C3C3C;" parent="90" vertex="1">
+          <mxGeometry x="55" y="75" width="165" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="95" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="90" vertex="1">
+          <mxGeometry x="15" y="110" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="96" value="Database / Data" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#3C3C3C;" parent="90" vertex="1">
+          <mxGeometry x="55" y="110" width="165" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="97" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="90" vertex="1">
+          <mxGeometry x="15" y="145" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="98" value="Infrastructuur / Identity" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#3C3C3C;" parent="90" vertex="1">
+          <mxGeometry x="55" y="145" width="165" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="99" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="90" vertex="1">
+          <mxGeometry x="15" y="180" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="100" value="Extern systeem" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#3C3C3C;" parent="90" vertex="1">
+          <mxGeometry x="55" y="180" width="165" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="101" value="" style="line;strokeColor=#999999;fillColor=none;" parent="90" vertex="1">
+          <mxGeometry x="10" y="215" width="220" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="102" value="Status overzicht" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=10;fontStyle=1;fontColor=#3C3C3C;" parent="90" vertex="1">
+          <mxGeometry x="15" y="230" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="103" value="⚠️ WEB01/02 — Windows 2012 R2 EOL" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;fontColor=#C42828;" parent="90" vertex="1">
+          <mxGeometry x="10" y="255" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="104" value="⚠️ APP01/02 — Windows 2012 R2 EOL" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;fontColor=#C42828;" parent="90" vertex="1">
+          <mxGeometry x="10" y="275" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="105" value="⚠️ SQL01/02 — SQL Server 2014 EoS" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;fontColor=#C42828;" parent="90" vertex="1">
+          <mxGeometry x="10" y="295" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="106" value="⚠️ F5 BIG-IP — Hardware EOL 2025" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;fontColor=#C42828;" parent="90" vertex="1">
+          <mxGeometry x="10" y="315" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="107" value="⚠️ SCOM 2012 — Niet ondersteund" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;fontColor=#C42828;" parent="90" vertex="1">
+          <mxGeometry x="10" y="335" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="108" value="⚠️ Backup — Enkel lokaal (geen offsite)" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=9;fontColor=#d79b00;" parent="90" vertex="1">
+          <mxGeometry x="10" y="355" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="109" value="delaware cloud practice — we commit. we deliver." style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=9;fontColor=#C42828;fontStyle=1;" parent="90" vertex="1">
+          <mxGeometry x="10" y="400" width="220" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="200" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6c8ebf;strokeWidth=2;fontSize=9;fontColor=#3C3C3C;fontStyle=2;" parent="1" source="81" target="10" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="201" value="HTTPS :443" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;strokeWidth=2;fontSize=9;fontColor=#3C3C3C;" parent="1" source="10" target="22" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="202" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#d6b656;strokeWidth=1.5;dashed=1;" parent="1" source="21" target="22" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="203" value=":443" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;strokeWidth=2;fontSize=9;fontColor=#3C3C3C;" parent="1" source="22" target="31" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="204" value=":443" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;strokeWidth=2;fontSize=9;fontColor=#3C3C3C;" parent="1" source="22" target="32" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="205" value="HTTP intern" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#d79b00;strokeWidth=1.5;fontSize=9;fontColor=#3C3C3C;" parent="1" source="31" target="41" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="206" value="HTTP intern" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#d79b00;strokeWidth=1.5;fontSize=9;fontColor=#3C3C3C;" parent="1" source="32" target="42" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="207" value="SQL :1433" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#82b366;strokeWidth=2;fontSize=9;fontColor=#3C3C3C;" parent="1" source="41" target="52" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="208" value="SQL :1433" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#82b366;strokeWidth=2;fontSize=9;fontColor=#3C3C3C;" parent="1" source="42" target="52" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="209" value="iSCSI" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#9673a6;strokeWidth=1.5;dashed=1;fontSize=9;fontColor=#3C3C3C;" parent="1" source="55" target="52" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="210" value="iSCSI" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#9673a6;strokeWidth=1.5;dashed=1;fontSize=9;fontColor=#3C3C3C;" parent="1" source="55" target="53" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="211" value="UNC Share" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#9673a6;strokeWidth=1.5;dashed=1;fontSize=9;fontColor=#3C3C3C;" parent="1" source="46" target="64" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="212" value="SMTP :25" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6c8ebf;strokeWidth=1.5;dashed=1;fontSize=9;fontColor=#3C3C3C;" parent="1" source="46" target="65" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="213" value="Backup" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#d79b00;strokeWidth=1.5;dashed=1;fontSize=9;fontColor=#3C3C3C;" parent="1" source="63" target="64" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="214" value="Kerberos / GPO" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6c8ebf;strokeWidth=1;dashed=1;fontSize=8;fontColor=#3C3C3C;" parent="1" source="61" target="31" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="215" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#999999;strokeWidth=1.5;" parent="1" source="71" target="70" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="216" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#999999;strokeWidth=1.5;" parent="1" source="72" target="70" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="217" value="" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#999999;strokeWidth=1.5;" parent="1" source="73" target="70" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="218" value="MPLS WAN" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#999999;strokeWidth=2;fontSize=9;fontColor=#3C3C3C;" parent="1" source="70" target="21" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="219" value="REST/SOAP via MPLS" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#9673a6;strokeWidth=1.5;dashed=1;fontSize=9;fontColor=#3C3C3C;" parent="1" source="45" target="80" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="220" value="Monitoring" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#b85450;strokeWidth=1;dashed=1;fontSize=8;fontColor=#3C3C3C;" parent="1" source="62" target="31" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
