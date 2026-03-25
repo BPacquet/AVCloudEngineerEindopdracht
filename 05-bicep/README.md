@@ -488,5 +488,3 @@ De App Service module moet het volgende bevatten:
 _Ga verder naar [`../06-cicd/README.md`](../06-cicd/README.md)_
 
 ---
-
-_delaware cloud practice — we commit. we deliver._

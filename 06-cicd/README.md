@@ -574,5 +574,3 @@ Documenteer je rollback-strategie voor beide pipelines:
 _Terug naar [`../README.md`](../README.md) voor het overzicht_
 
 ---
-
-_delaware cloud practice — we commit. we deliver._

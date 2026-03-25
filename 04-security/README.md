@@ -280,5 +280,3 @@ Eindrapport met oorzaakanalyse en preventieve maatregelen
 _Ga verder naar [`../05-bicep/README.md`](../05-bicep/README.md)_
 
 ---
-
-_delaware cloud practice — we commit. we deliver._

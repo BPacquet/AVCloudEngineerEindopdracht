@@ -231,5 +231,3 @@ Documenteer de **minimaal vereiste Azure Firewall regels**:
 _Ga verder naar [`../04-security/README.md`](../04-security/README.md)_
 
 ---
-
-_delaware cloud practice — we commit. we deliver._

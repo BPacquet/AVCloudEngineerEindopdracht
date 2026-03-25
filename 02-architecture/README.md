@@ -240,5 +240,3 @@ Documenteer hoe je ontwerp scoort op de 5 pijlers van het Azure Well-Architected
 _Ga verder naar [`../03-network/README.md`](../03-network/README.md)_
 
 ---
-
-_delaware cloud practice — we commit. we deliver._
