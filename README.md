@@ -209,4 +209,4 @@ De aanbevolen strategie is een **twee-fasen aanpak**:
 
 > ⚠️ **Let op**: Voor de eindopdracht ontwerpen jullie de **Fase 2 (Refactor) architectuur** — de eindbestemming in PaaS.
 
-_Ga verder naar [`../01-pricing/README.md`](../01-pricing/README.md)_
+_Ga verder naar [`../01-pricing/README.md`](/01-pricing/README.md)_
