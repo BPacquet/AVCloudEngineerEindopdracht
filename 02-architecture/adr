@@ -1,1 +1,93 @@
+architectuurbeslissingen (Architecture Decision Records)
+Voor de volgende keuzes schrijf je een korte ADR (Architecture Decision Record):
 
+ADR-001: App Service vs AKS vs Azure Container Apps
+App Service	AKS	Container Apps
+Complexiteit	Laag	Hoog	Middel
+Beheer overhead	Minimaal	Hoog	Laag
+Kost	Middel	Hoog	Laag-Middel
+Geschikt voor WebForms migratie	✅	⚠️	⚠️
+Vul in: Welke kies jij en waarom?
+# ADR-001: Hostingplatform — App Service
+
+## Beslissing
+Is kies voor Azure App Service Plan P2v3 (Windows).
+
+## Motivatie
+De huidige applicatie draait op ASP.NET WebForms (.NET Framework 4.8).
+Omdat WebForms sterk afhankelijk is van Windows-functionaliteiten, is Azure App Service op Windows de eenvoudigste manier om de applicatie zonder herschrijving naar Azure te migreren.
+
+## Alternatieven
+- AKS: vereist containerisatie en brengt extra beheercomplexiteit mee.
+- Azure Container Apps: ook container-gebaseerd en daarom minder geschikt voor WebForms omdat het meer beheer en meer configuratie vraagt.
+Misschien missen ze de nodig kennis om IIS zelf te configureren in de docker container. 
+## Gevolgen
+Contoso krijgt een eenvoudige beheeromgeving met deployment slots, autoscaling, HTTPS en Managed Identity.
+Later kan de API-laag nog gemoderniseerd worden zonder de frontend meteen te vervangen.
+
+ADR-002: Azure SQL DB tier keuze
+Tier	vCores	Beschikbaarheid	Prijs
+General Purpose	4–80	99.99% (zone redundant)	€
+Business Critical	4–80	99.995% + read replica inbegrepen	€€€
+Hyperscale	1–80	Hoog, andere architectuur	€€
+Vul in: Welke tier kies jij? Onderbouw met de RTO/RPO-vereisten.
+## Beslissing
+Ik heb gekozen voor een Azure SQL Managed Instance (General Purpose (8 vCore) met een auto-failover Group naar North Europe
+## Motivatie
+Het bedrijf heeft een productieomgeving met meerdere vestigingen en een koppeling met SAP, maar geen systemen die 24/7 zonder enige onderbreking moeten bijven draaien.
+In de documentatie blijkt dat de SQL-Server op vandaag geen strenge SLA's heeft en daarom is het doel vooral om de beschikbaarheid en betrouwbaarheid duidelijk te verbeteren zonder onnodige hoge kosten.
+Met General Purpose krijgt Contoso:
+
+hoge beschikbaarheid
+automatische failover bij een regionaal probleem
+back-up en replicatie tussen regio’s
+een RPO van minder dan 5 minuten
+een RTO van minder dan 30 minuten
+
+Dat is ruim voldoende voor de huidige bedrijfsnoden.
+## Alternatieven
+Waarom geen Business Critical?
+
+Business Critical is vooral interessant voor:
+
+extreem hoge prestaties
+in-memory workloads
+zware rapportering
+bijna onmiddellijke failover
+
+Die situatie geldt niet voor Contoso.
+De workload is een klassieke relationele database en kleine vertragingen van enkele seconden zijn aanvaardbaar.
+
+Daarnaast is Business Critical veel duurder.
+## Gevolgen
+Met deze keuze krijgt Contoso een stabiele en betrouwbare SQL-oplossing met automatische failover en geo-replicatie, tegen een veel lagere kost dan Business Critical.
+De kostenbesparing ten opzichte van Business Critical is aanzienlijk: 
+General Purpose 8 vCore kost met 1-jaar reserved instantie circa €1.100/maand vs. Business Critical circa €2.400/maand — een besparing van €1.300/maand (€15.600/jaar) 
+die beter wordt geïnvesteerd in de Firewall Premium of een tweede Azure Bastion.
+
+ADR-003: VPN Gateway vs ExpressRoute
+VPN Gateway	ExpressRoute
+Bandbreedte	Tot 10 Gbps	50 Mbps – 100 Gbps
+Latency	Variabel (internet)	Laag (dedicated circuit)
+Kost	Laag (€140–€700/mnd)	Hoog (€500–€5000+/mnd)
+Gebruik	Dev/test, lagere eisen	Productie, hoge eisen
+Vul in: Welke kies jij voor Contoso? Motiveer.
+# ADR-003: Connectiviteit — VPN Gateway
+
+## Beslissing
+Hier kies ik voor een Azure VPN Gateway VpnGw1 als primaire connectiviteit tussen on-premises locaties en Azure.
+
+## Motivatie
+De huidige workload draait vooral op Azure PaaS-diensten zoals App Service, SQL Managed Instance en Storage. 
+Hierdoor blijft het meeste netwerkverkeer binnen Azure en is een zware dedicated verbinding niet nodig.
+
+VPN Gateway VpnGw1 biedt voldoende bandbreedte en beschikbaarheid voor beheer, AD-replicatie en koppelingen met bestaande systemen.
+
+Daarnaast is deze oplossing veel goedkoper dan ExpressRoute.
+
+## Alternatieven
+- ExpressRoute: biedt private connectiviteit en hogere prestaties, maar is momenteel te duur en niet noodzakelijk voor de huidige workload.
+
+## Gevolgen
+Contoso krijgt een betrouwbare en kostenefficiënte verbinding met Azure. 
+Indien nodig kan ExpressRoute later nog toegevoegd worden, terwijl de VPN-verbinding als fallback behouden blijft.
