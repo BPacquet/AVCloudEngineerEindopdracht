@@ -1,0 +1,477 @@
+<mxfile host="Electron">
+  <diagram id="app-lz-contoso" name="Contoso Application Landing Zone">
+    <mxGraphModel dx="1178" dy="701" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="3000" pageHeight="2300" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;align=center;fontSize=20;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;rounded=1;" value="Contoso Manufacturing NV — Application Landing Zone (ALZ Corp)" vertex="1">
+          <mxGeometry height="46" width="1640" x="640" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" parent="1" style="text;html=1;align=center;fontSize=11;fillColor=none;strokeColor=none;fontColor=#555555;" value="Contoso-Prod Subscription  |  Corp Landing Zone  |  West Europe primary · North Europe DR  |  Spoke VNet 10.20.0.0/16 ⇄ Hub VNet 10.0.0.0/16  (Connectivity Subscription)" vertex="1">
+          <mxGeometry height="20" width="1640" x="640" y="68" as="geometry" />
+        </mxCell>
+        <mxCell id="internet" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BEF2;strokeColor=#006EAF;fontStyle=1;fontSize=10;" value="🌐 Internet&#xa;Externe gebruikers&#xa;HTTPS :443" vertex="1">
+          <mxGeometry height="70" width="140" x="60" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="interne-users" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=10;" value="👥 Interne gebruikers&#xa;Gent · Luik · Hasselt&#xa;Via VPN → Hub FW → AGW" vertex="1">
+          <mxGeometry height="70" width="160" x="220" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="devops" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0078D4;strokeColor=#004a8a;fontStyle=1;fontSize=10;fontColor=#ffffff;" value="🚀 Azure DevOps&#xa;CI/CD: build→staging→swap&#xa;IaC: Bicep" vertex="1">
+          <mxGeometry height="70" width="160" x="400" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="entra" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0078D4;strokeColor=#004a8a;fontStyle=1;fontSize=10;fontColor=#ffffff;" value="☁️ Microsoft Entra ID P1&#xa;MFA · CA · PIM · SSPR&#xa;OAuth2/OIDC" vertex="1">
+          <mxGeometry height="70" width="160" x="580" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="hub-ref" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#006EAF;strokeWidth=2;fontSize=11;fontStyle=1;arcSize=6;" value="🔵 Hub VNet  10.0.0.0/16  (Connectivity Subscription)&#xa;Azure Firewall Premium  |  VPN Gateway VpnGw1&#xa;Azure Bastion  |  Private DNS Zones  |  UDR alle spokes" vertex="1">
+          <mxGeometry height="80" width="500" x="760" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="onprem" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;fontSize=10;fontStyle=1;arcSize=6;" value="🏭 On-Premises  192.168.0.0/16&#xa;Gent HQ: DC01 · AD · SAP ERP&#xa;Luik · Hasselt · Veeam (vervallen)" vertex="1">
+          <mxGeometry height="80" width="320" x="1280" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sqlmi-dr" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;fontSize=10;fontStyle=1;arcSize=6;" value="🗄️ SQL MI Secondary&#xa;North Europe  |  DR&#xa;Auto-failover group&#xa;RPO &lt;5s · RTO &lt;30s" vertex="1">
+          <mxGeometry height="90" width="200" x="2780" y="580" as="geometry" />
+        </mxCell>
+        <mxCell id="prod-sub" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f7ff;strokeColor=#0078D4;strokeWidth=3;arcSize=2;verticalAlign=top;" value="" vertex="1">
+          <mxGeometry height="2030" width="2140" x="640" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="prod-sub-icon" parent="1" style="image;aspect=fixed;html=1;points=[];align=left;fontSize=13;fontStyle=1;image=img/lib/azure2/general/Subscriptions.svg;" value="  Contoso-Prod  —  West Europe  |  Corp Landing Zone" vertex="1">
+          <mxGeometry height="28" width="28" x="656" y="218" as="geometry" />
+        </mxCell>
+        <mxCell id="alz-policy" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;dashed=1;" value="Azure Policy (Corp MG): No public endpoints PaaS  |  Private endpoints verplicht  |  Backup verplicht  |  Tagging: env=prd · owner=contoso · costcenter=IT  |  Allowed locations: West Europe · North Europe" vertex="1">
+          <mxGeometry height="18" width="2104" x="656" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="rbac-bar" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=9;dashed=1;" value="RBAC: Contributor → Azure DevOps SP (uami-devops-prd)  |  Reader → Dev team  |  Owner → Platform team via PIM JIT max 4u" vertex="1">
+          <mxGeometry height="18" width="2104" x="656" y="272" as="geometry" />
+        </mxCell>
+        <mxCell id="rg-net" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#006EAF;strokeWidth=2;arcSize=3;verticalAlign=top;" value="" vertex="1">
+          <mxGeometry height="200" width="2104" x="656" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="rg-net-lbl" parent="1" style="text;html=1;align=left;fontSize=12;fontStyle=1;fontColor=#003366;" value="📁  rg-contoso-networking" vertex="1">
+          <mxGeometry height="18" width="300" x="668" y="308" as="geometry" />
+        </mxCell>
+        <mxCell id="spoke-vnet" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#cce5ff;strokeColor=#006EAF;dashed=1;arcSize=3;verticalAlign=top;" value="" vertex="1">
+          <mxGeometry height="156" width="2078" x="668" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="spoke-vnet-lbl" parent="1" style="text;html=1;align=left;fontSize=11;fontStyle=1;fontColor=#003366;" value="Spoke VNet:  vnet-contoso-prod-weu  —  10.20.0.0/16  |  DDoS Protection Standard" vertex="1">
+          <mxGeometry height="16" width="560" x="680" y="336" as="geometry" />
+        </mxCell>
+        <mxCell id="sub-p" parent="1" style="image;aspect=fixed;html=1;points=[];align=left;fontSize=9;image=img/lib/azure2/networking/Subnet.svg;" value="  PerimeterSubnet  10.20.0.0/27&#xa;  AGW · NSG · UDR → FW" vertex="1">
+          <mxGeometry height="20" width="20" x="680" y="356" as="geometry" />
+        </mxCell>
+        <mxCell id="sub-p-lbl" parent="1" style="text;html=1;align=left;fontSize=9;fontColor=#003366;" value="PerimeterSubnet  10.20.0.0/27" vertex="1">
+          <mxGeometry height="14" width="200" x="704" y="357" as="geometry" />
+        </mxCell>
+        <mxCell id="sub-a" parent="1" style="image;aspect=fixed;html=1;points=[];align=left;fontSize=9;image=img/lib/azure2/networking/Subnet.svg;" value="" vertex="1">
+          <mxGeometry height="20" width="20" x="920" y="356" as="geometry" />
+        </mxCell>
+        <mxCell id="sub-a-lbl" parent="1" style="text;html=1;align=left;fontSize=9;fontColor=#003366;" value="AppSubnet  10.20.1.0/24  (VNet Integration)" vertex="1">
+          <mxGeometry height="14" width="230" x="944" y="357" as="geometry" />
+        </mxCell>
+        <mxCell id="sub-d" parent="1" style="image;aspect=fixed;html=1;points=[];align=left;fontSize=9;image=img/lib/azure2/networking/Subnet.svg;" value="" vertex="1">
+          <mxGeometry height="20" width="20" x="1200" y="356" as="geometry" />
+        </mxCell>
+        <mxCell id="sub-d-lbl" parent="1" style="text;html=1;align=left;fontSize=9;fontColor=#003366;" value="DataSubnet  10.20.2.0/24  (Storage · SB PE)" vertex="1">
+          <mxGeometry height="14" width="220" x="1224" y="357" as="geometry" />
+        </mxCell>
+        <mxCell id="sub-mi" parent="1" style="image;aspect=fixed;html=1;points=[];align=left;fontSize=9;image=img/lib/azure2/networking/Subnet.svg;" value="" vertex="1">
+          <mxGeometry height="20" width="20" x="1700" y="356" as="geometry" />
+        </mxCell>
+        <mxCell id="sub-mi-lbl" parent="1" style="text;html=1;align=left;fontSize=9;fontColor=#003366;" value="SqlMiSubnet  10.20.4.0/24  (dedicated SQL MI)" vertex="1">
+          <mxGeometry height="14" width="230" x="1724" y="357" as="geometry" />
+        </mxCell>
+        <mxCell id="sub-s" parent="1" style="image;aspect=fixed;html=1;points=[];align=left;fontSize=9;image=img/lib/azure2/networking/Subnet.svg;" value="" vertex="1">
+          <mxGeometry height="20" width="20" x="2240" y="356" as="geometry" />
+        </mxCell>
+        <mxCell id="sub-s-lbl" parent="1" style="text;html=1;align=left;fontSize=9;fontColor=#003366;" value="SecuritySubnet  10.20.3.0/27  (KV PE · MI)" vertex="1">
+          <mxGeometry height="14" width="230" x="2264" y="357" as="geometry" />
+        </mxCell>
+        <mxCell id="nsg-udr" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=9;" value="NSG per subnet  |  UDR: 0.0.0.0/0 → Azure Firewall (10.0.1.4)  |  192.168.0.0/16 → VPN Gateway  |  BGP propagation: disabled" vertex="1">
+          <mxGeometry height="18" width="2054" x="680" y="382" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet-peer-lbl" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#378ADD;fontSize=10;fontStyle=1;" value="VNet Peering ⇄ Hub VNet 10.0.0.0/16  (Allow gateway transit · Allow forwarded traffic)" vertex="1">
+          <mxGeometry height="18" width="2054" x="680" y="404" as="geometry" />
+        </mxCell>
+        <mxCell id="budget-lbl" parent="1" style="text;html=1;align=left;fontSize=9;fontColor=#666;" value="💰 Budget alert: €4.000/mnd  |  Cost Management: SQL MI 1jr reserved · App Service P2v3 reserved" vertex="1">
+          <mxGeometry height="14" width="700" x="680" y="426" as="geometry" />
+        </mxCell>
+        <mxCell id="rg-fe" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#f0a30a;strokeWidth=2;arcSize=3;verticalAlign=top;" value="" vertex="1">
+          <mxGeometry height="680" width="920" x="656" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="rg-fe-lbl" parent="1" style="text;html=1;align=left;fontSize=12;fontStyle=1;fontColor=#7a5200;" value="📁  rg-contoso-frontend" vertex="1">
+          <mxGeometry height="18" width="400" x="668" y="528" as="geometry" />
+        </mxCell>
+        <mxCell id="pip" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#00BEF2;strokeColor=#006EAF;fontSize=9;fontStyle=1;" value="🌐 pip-agw-prd&#xa;contoso.be" vertex="1">
+          <mxGeometry height="44" width="120" x="668" y="554" as="geometry" />
+        </mxCell>
+        <mxCell id="agw-icon" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=10;fontStyle=0;image=img/lib/azure2/networking/Web_Application_Firewall_Policies_WAF.svg;" value="" vertex="1">
+          <mxGeometry height="40" width="40" x="808" y="556" as="geometry" />
+        </mxCell>
+        <mxCell id="agw-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9e4b7;strokeColor=#d79b00;strokeWidth=2;fontSize=10;fontStyle=1;arcSize=4;" value="Application Gateway WAF v2&#xa;agw-contoso-prd-001&#xa;&#xa;SSL/TLS offload (TLS cert via Key Vault)&#xa;OWASP CRS 3.2  |  URL-based routing&#xa;Backend pools: web + api&#xa;Health probes  |  HTTP/2&#xa;&#xa;🔄 Vervangt: F5 BIG-IP (EOL 2025)" vertex="1">
+          <mxGeometry height="168" width="352" x="798" y="548" as="geometry" />
+        </mxCell>
+        <mxCell id="asp-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#d79b00;strokeWidth=2;fontSize=10;fontStyle=1;arcSize=3;" value="App Service Plan  asp-contoso-prd-p2v3  |  P2v3 (4 vCore · 16 GB) Windows  |  Auto-scale: 2–6 instanties  |  Zone redundant" vertex="1">
+          <mxGeometry height="36" width="888" x="668" y="736" as="geometry" />
+        </mxCell>
+        <mxCell id="web-icon" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;image=img/lib/azure2/app_services/App_Services.svg;" value="" vertex="1">
+          <mxGeometry height="36" width="36" x="678" y="782" as="geometry" />
+        </mxCell>
+        <mxCell id="web-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3cd;strokeColor=#f0a30a;strokeWidth=2;fontSize=10;fontStyle=1;arcSize=3;" value="web-contoso-prd&#xa;ASP.NET WebForms · .NET 4.8&#xa;System-assigned MI  |  VNet Integration&#xa;App Insights SDK  |  Always On&#xa;🔄 Vervangt: IIS + ASP.NET op WEB01/WEB02" vertex="1">
+          <mxGeometry height="110" width="420" x="668" y="778" as="geometry" />
+        </mxCell>
+        <mxCell id="web-prod-slot" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#388e3c;fontSize=9;fontStyle=1;arcSize=6;" value="🟢 production slot" vertex="1">
+          <mxGeometry height="30" width="200" x="668" y="896" as="geometry" />
+        </mxCell>
+        <mxCell id="web-stage-slot" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#e65100;fontSize=9;fontStyle=1;arcSize=6;" value="🟡 staging slot" vertex="1">
+          <mxGeometry height="30" width="200" x="878" y="896" as="geometry" />
+        </mxCell>
+        <mxCell id="web-swap-lbl" parent="1" style="text;html=1;align=center;fontSize=9;fontColor=#e65100;fontStyle=2;" value="⇄ zero-downtime swap  |  rollback &lt;2 min" vertex="1">
+          <mxGeometry height="14" width="420" x="668" y="930" as="geometry" />
+        </mxCell>
+        <mxCell id="api-icon" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;image=img/lib/azure2/app_services/App_Services.svg;" value="" vertex="1">
+          <mxGeometry height="36" width="36" x="1108" y="782" as="geometry" />
+        </mxCell>
+        <mxCell id="api-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3cd;strokeColor=#f0a30a;strokeWidth=2;fontSize=10;fontStyle=1;arcSize=3;" value="api-contoso-prd&#xa;.NET Windows API backend&#xa;System-assigned MI  |  VNet Integration&#xa;App Insights SDK  |  Always On&#xa;🔄 Vervangt: IIS + .NET op APP01/APP02" vertex="1">
+          <mxGeometry height="110" width="420" x="1098" y="778" as="geometry" />
+        </mxCell>
+        <mxCell id="api-prod-slot" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#388e3c;fontSize=9;fontStyle=1;arcSize=6;" value="🟢 production slot" vertex="1">
+          <mxGeometry height="30" width="200" x="1098" y="896" as="geometry" />
+        </mxCell>
+        <mxCell id="api-stage-slot" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe0b2;strokeColor=#e65100;fontSize=9;fontStyle=1;arcSize=6;" value="🟡 staging slot" vertex="1">
+          <mxGeometry height="30" width="200" x="1308" y="896" as="geometry" />
+        </mxCell>
+        <mxCell id="api-swap-lbl" parent="1" style="text;html=1;align=center;fontSize=9;fontColor=#e65100;fontStyle=2;" value="⇄ zero-downtime swap  |  rollback &lt;2 min" vertex="1">
+          <mxGeometry height="14" width="420" x="1098" y="930" as="geometry" />
+        </mxCell>
+        <mxCell id="comm-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3cd;strokeColor=#f0a30a;strokeWidth=1;fontSize=9;arcSize=4;" value="📧 Azure Communication Services&#xa;Mail delivery  |  pay-per-mail  |  geen server vereist&#xa;🔄 Vervangt: Exchange Server SMTP relay" vertex="1">
+          <mxGeometry height="54" width="852" x="668" y="958" as="geometry" />
+        </mxCell>
+        <mxCell id="rg-compute" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#388e3c;strokeWidth=2;arcSize=3;verticalAlign=top;" value="" vertex="1">
+          <mxGeometry height="450" width="500" x="1596" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="rg-compute-lbl" parent="1" style="text;html=1;align=left;fontSize=12;fontStyle=1;fontColor=#1b5e20;" value="📁  rg-contoso-compute" vertex="1">
+          <mxGeometry height="18" width="400" x="1608" y="528" as="geometry" />
+        </mxCell>
+        <mxCell id="fn-header" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#a5d6a7;strokeColor=#388e3c;strokeWidth=2;fontSize=10;fontStyle=1;arcSize=3;" value="⚡ Function App  fn-contoso-prd-001&#xa;Consumption Plan  |  VNet Integration (AppSubnet)&#xa;System-assigned MI  |  App Insights SDK" vertex="1">
+          <mxGeometry height="60" width="472" x="1608" y="550" as="geometry" />
+        </mxCell>
+        <mxCell id="fn-sched" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#388e3c;fontSize=9;arcSize=4;" value="⏱ Scheduler Function&#xa;Timer trigger  |  cron schedule&#xa;→ Service Bus (publish job-queue)&#xa;→ SAP REST/SOAP via VPN&#xa;🔄 Vervangt: .NET Windows Service Scheduler" vertex="1">
+          <mxGeometry height="90" width="472" x="1608" y="622" as="geometry" />
+        </mxCell>
+        <mxCell id="fn-proc" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#388e3c;fontSize=9;arcSize=4;" value="⚙️ Processor Function&#xa;Service Bus trigger  |  job-queue&#xa;→ SQL MI (write) · → Storage (file)&#xa;🔄 Vervangt: .NET Windows Service Processor" vertex="1">
+          <mxGeometry height="90" width="472" x="1608" y="722" as="geometry" />
+        </mxCell>
+        <mxCell id="fn-rep" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#c8e6c9;strokeColor=#388e3c;fontSize=9;arcSize=4;" value="📊 Reporter Function&#xa;HTTP trigger  |  SQL MI query&#xa;→ Communication Services (mail verzenden)&#xa;🔄 Vervangt: .NET Windows Service Reporter" vertex="1">
+          <mxGeometry height="90" width="472" x="1608" y="822" as="geometry" />
+        </mxCell>
+        <mxCell id="rg-data" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fce4ec;strokeColor=#c62828;strokeWidth=2;arcSize=3;verticalAlign=top;" value="" vertex="1">
+          <mxGeometry height="680" width="640" x="2116" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="rg-data-lbl" parent="1" style="text;html=1;align=left;fontSize=12;fontStyle=1;fontColor=#880e4f;" value="📁  rg-contoso-data" vertex="1">
+          <mxGeometry height="18" width="400" x="2128" y="528" as="geometry" />
+        </mxCell>
+        <mxCell id="sqlmi-icon" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;image=img/lib/azure2/databases/SQL_Managed_Instance.svg;" value="" vertex="1">
+          <mxGeometry height="40" width="40" x="2128" y="556" as="geometry" />
+        </mxCell>
+        <mxCell id="sqlmi-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;strokeWidth=2;fontSize=10;fontStyle=1;arcSize=3;" value="SQL Managed Instance&#xa;sql-contoso-prd-mi-001&#xa;General Purpose · 8 vCore&#xa;SqlMiSubnet 10.20.4.0/24 (dedicated)&#xa;&#xa;SQL Agent · Linked Servers · CLR&#xa;Entra ID auth via MI  |  PITR 35d&#xa;LTR: 7d/4w/12m  |  TDE  |  Always On&#xa;&#xa;🔄 Vervangt: SQL Server 2014 Always On AG (EOL)" vertex="1">
+          <mxGeometry height="210" width="620" x="2116" y="548" as="geometry" />
+        </mxCell>
+        <mxCell id="pe-sqlmi-icon" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;image=img/lib/azure2/other/Private_Endpoints.svg;" value="" vertex="1">
+          <mxGeometry height="28" width="28" x="2128" y="768" as="geometry" />
+        </mxCell>
+        <mxCell id="pe-sqlmi-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=9;arcSize=4;" value="Private Endpoint  pe-sqlmi-prd  |  10.20.4.4  :1433  |  SqlMiSubnet" vertex="1">
+          <mxGeometry height="36" width="620" x="2116" y="762" as="geometry" />
+        </mxCell>
+        <mxCell id="storage-icon" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;image=img/lib/azure2/storage/Storage_Accounts.svg;" value="" vertex="1">
+          <mxGeometry height="40" width="40" x="2128" y="812" as="geometry" />
+        </mxCell>
+        <mxCell id="storage-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;strokeWidth=2;fontSize=10;fontStyle=1;arcSize=3;" value="Storage Account  stcontosoprd001&#xa;LRS  |  Soft delete 7d  |  Versioning&#xa;&#xa;Blob Storage (applicatiedata, exports)&#xa;Azure Files SMB (UNC shares)&#xa;&#xa;🔄 Vervangt: NAS iSCSI + UNC file server" vertex="1">
+          <mxGeometry height="160" width="620" x="2116" y="808" as="geometry" />
+        </mxCell>
+        <mxCell id="pe-storage-icon" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;image=img/lib/azure2/other/Private_Endpoints.svg;" value="" vertex="1">
+          <mxGeometry height="28" width="28" x="2128" y="978" as="geometry" />
+        </mxCell>
+        <mxCell id="pe-storage-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;fontSize=9;arcSize=4;" value="Private Endpoint  pe-storage-prd  |  10.20.2.5  |  DataSubnet" vertex="1">
+          <mxGeometry height="36" width="620" x="2116" y="972" as="geometry" />
+        </mxCell>
+        <mxCell id="sb-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffcdd2;strokeColor=#c62828;strokeWidth=2;fontSize=10;fontStyle=1;arcSize=3;" value="Service Bus Standard  sb-contoso-prd-001&#xa;Queues: job-queue · report-queue  |  Topic: events&#xa;MI auth (geen connection strings)&#xa;🔄 Vervangt: WCF/COM+ directe aanroepen + MSMQ" vertex="1">
+          <mxGeometry height="90" width="620" x="2116" y="1018" as="geometry" />
+        </mxCell>
+        <mxCell id="geo-rep-lbl" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=9;fontStyle=1;" value="Auto-failover group → North Europe  |  RPO &lt;5s  |  RTO &lt;30s" vertex="1">
+          <mxGeometry height="22" width="620" x="2116" y="1118" as="geometry" />
+        </mxCell>
+        <mxCell id="rg-sec" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede7f6;strokeColor=#6200ea;strokeWidth=2;arcSize=3;verticalAlign=top;" value="" vertex="1">
+          <mxGeometry height="520" width="1180" x="656" y="1220" as="geometry" />
+        </mxCell>
+        <mxCell id="rg-sec-lbl" parent="1" style="text;html=1;align=left;fontSize=12;fontStyle=1;fontColor=#4a148c;" value="📁  rg-contoso-security" vertex="1">
+          <mxGeometry height="18" width="400" x="668" y="1228" as="geometry" />
+        </mxCell>
+        <mxCell id="kv-icon" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;image=img/lib/azure2/security/Key_Vaults.svg;" value="" vertex="1">
+          <mxGeometry height="40" width="40" x="678" y="1256" as="geometry" />
+        </mxCell>
+        <mxCell id="kv-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#6200ea;strokeWidth=2;fontSize=10;fontStyle=1;arcSize=3;" value="Key Vault  kv-contoso-prd-001&#xa;Standard  |  Soft-delete 90d  |  Purge protection&#xa;&#xa;Secrets: SQL conn str · Storage key · Comm Services&#xa;Certificates: TLS voor AGW (auto-renew via DigiCert)&#xa;Keys: Storage encryption CMK&#xa;&#xa;🔄 Vervangt: wachtwoorden in web.config / hardcoded" vertex="1">
+          <mxGeometry height="190" width="500" x="668" y="1250" as="geometry" />
+        </mxCell>
+        <mxCell id="pe-kv-icon" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;image=img/lib/azure2/other/Private_Endpoints.svg;" value="" vertex="1">
+          <mxGeometry height="28" width="28" x="678" y="1450" as="geometry" />
+        </mxCell>
+        <mxCell id="pe-kv-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#6200ea;fontSize=9;arcSize=4;" value="Private Endpoint  pe-keyvault-prd  |  10.20.3.4  |  SecuritySubnet" vertex="1">
+          <mxGeometry height="36" width="500" x="668" y="1444" as="geometry" />
+        </mxCell>
+        <mxCell id="mi-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#6200ea;strokeWidth=2;fontSize=10;fontStyle=1;arcSize=3;" value="🪪 Managed Identity&#xa;&#xa;System-assigned: web · api · fn&#xa;User-assigned: uami-devops-prd (pipeline)&#xa;&#xa;RBAC rollen:&#xa;  KV Secrets Get/List&#xa;  SQL MI Entra ID auth&#xa;  Storage Blob Contributor&#xa;  Service Bus Sender/Receiver&#xa;&#xa;🔄 Vervangt: service accounts + SQL logins" vertex="1">
+          <mxGeometry height="280" width="380" x="1188" y="1250" as="geometry" />
+        </mxCell>
+        <mxCell id="dfc-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#6200ea;strokeWidth=2;fontSize=10;fontStyle=1;arcSize=3;" value="🛡️ Defender for Cloud&#xa;&#xa;CSPM  |  Secure score&#xa;Plans: Servers · SQL MI · Storage · App Service · KV&#xa;Vulnerability scan SQL  |  Adaptive hardening&#xa;Alerts → LAW → Azure Monitor&#xa;&#xa;🔄 Vervangt: SCOM 2012 (EOL)" vertex="1">
+          <mxGeometry height="180" width="500" x="668" y="1490" as="geometry" />
+        </mxCell>
+        <mxCell id="ca-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#6200ea;strokeWidth=1;fontSize=9;fontStyle=1;arcSize=3;" value="🔐 Conditional Access + PIM  (Entra ID P1)&#xa;MFA verplicht  |  Compliant device  |  Named locations&#xa;PIM JIT max 4u  |  Approval required  |  Audit → LAW&#xa;🔄 Vervangt: permanente admin-accounts" vertex="1">
+          <mxGeometry height="90" width="380" x="1188" y="1544" as="geometry" />
+        </mxCell>
+        <mxCell id="policy-icon-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1bee7;strokeColor=#6200ea;strokeWidth=1;fontSize=9;arcSize=3;" value="📋 Azure Policy (Corp MG)&#xa;Tagging · Backup verplicht · No public endpoints&#xa;Private endpoints verplicht · RBAC baseline&#xa;🔄 Vervangt: manuele compliance-controle" vertex="1">
+          <mxGeometry height="80" width="380" x="1188" y="1644" as="geometry" />
+        </mxCell>
+        <mxCell id="rg-mon" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e3f2fd;strokeColor=#1565c0;strokeWidth=2;arcSize=3;verticalAlign=top;" value="" vertex="1">
+          <mxGeometry height="520" width="900" x="1856" y="1220" as="geometry" />
+        </mxCell>
+        <mxCell id="rg-mon-lbl" parent="1" style="text;html=1;align=left;fontSize=12;fontStyle=1;fontColor=#0d47a1;" value="📁  rg-contoso-monitoring  (gecentraliseerd in Management-sub)" vertex="1">
+          <mxGeometry height="18" width="600" x="1868" y="1228" as="geometry" />
+        </mxCell>
+        <mxCell id="appins-icon" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;image=img/lib/azure2/analytics/Log_Analytics_Workspaces.svg;" value="" vertex="1">
+          <mxGeometry height="36" width="36" x="1878" y="1256" as="geometry" />
+        </mxCell>
+        <mxCell id="appins-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;strokeWidth=2;fontSize=10;fontStyle=1;arcSize=3;" value="Application Insights&#xa;appi-contoso-prd-001  |  workspace-based&#xa;&#xa;APM: traces · dependencies · exceptions&#xa;SDK op web · api · fn  |  Live Metrics&#xa;Beschikbaarheidstest: 5 min  |  Workbooks&#xa;&#xa;🔄 Vervangt: SCOM 2012 / geen APM" vertex="1">
+          <mxGeometry height="190" width="400" x="1868" y="1250" as="geometry" />
+        </mxCell>
+        <mxCell id="law-icon" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;image=img/lib/azure2/analytics/Log_Analytics_Workspaces.svg;" value="" vertex="1">
+          <mxGeometry height="36" width="36" x="2318" y="1256" as="geometry" />
+        </mxCell>
+        <mxCell id="law-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;strokeWidth=2;fontSize=10;fontStyle=1;arcSize=3;" value="Log Analytics Workspace&#xa;law-contoso-mgmt-001  |  Management-sub&#xa;&#xa;90d hot  |  2y archive  |  KQL  |  Workbooks&#xa;Alle subscripties → 1 centrale LAW&#xa;Sentinel-ready&#xa;&#xa;🔄 Vervangt: Event Viewer / Windows logs lokaal" vertex="1">
+          <mxGeometry height="190" width="400" x="2308" y="1250" as="geometry" />
+        </mxCell>
+        <mxCell id="azmon-icon" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;image=img/lib/azure2/management_governance/Monitor.svg;" value="" vertex="1">
+          <mxGeometry height="36" width="36" x="1878" y="1458" as="geometry" />
+        </mxCell>
+        <mxCell id="azmon-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;strokeWidth=2;fontSize=10;fontStyle=1;arcSize=3;" value="Azure Monitor&#xa;Metrics · Auto-scale · Dashboards&#xa;&#xa;Alerts: CPU &gt;80% · SQL storage · Backup failure&#xa;Action groups: email + Teams webhook&#xa;&#xa;🔄 Vervangt: manuele monitoring / SCOM 2012" vertex="1">
+          <mxGeometry height="160" width="400" x="1868" y="1452" as="geometry" />
+        </mxCell>
+        <mxCell id="backup-icon" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;image=img/lib/azure2/migrate/Recovery_Services_Vaults.svg;" value="" vertex="1">
+          <mxGeometry height="36" width="36" x="2318" y="1458" as="geometry" />
+        </mxCell>
+        <mxCell id="backup-box" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#bbdefb;strokeColor=#1565c0;strokeWidth=2;fontSize=10;fontStyle=1;arcSize=3;" value="Azure Backup Vault  (GRS)&#xa;Management-sub&#xa;&#xa;SQL MI LTR: 7d/4w/12m&#xa;Azure Files backup  |  Cross-region restore&#xa;&#xa;🔄 Vervangt: Veeam Backup (enkel lokaal)" vertex="1">
+          <mxGeometry height="160" width="400" x="2308" y="1452" as="geometry" />
+        </mxCell>
+        <mxCell id="e-inet-agw" edge="1" parent="1" source="internet" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;strokeWidth=3;fontColor=#b85450;fontSize=9;fontStyle=1;" target="agw-box" value="HTTPS :443">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="974" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-pip-agw" edge="1" parent="1" source="pip" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#006EAF;strokeWidth=2;fontSize=9;" target="agw-box" value="pip-agw-prd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-users-hub" edge="1" parent="1" source="interne-users" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#666666;strokeWidth=2;dashed=1;fontSize=9;" target="hub-ref" value="VPN → FW → AGW">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="170" />
+              <mxPoint x="570" y="120" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-hub-onprem" edge="1" parent="1" source="hub-ref" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;strokeWidth=2;dashed=1;fontSize=9;" target="onprem" value="IPSec VPN / BGP">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-hub-spoke" edge="1" parent="1" source="hub-ref" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#0078D4;strokeWidth=3;fontSize=10;fontStyle=1;" target="spoke-vnet" value="VNet Peering">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1010" y="240" />
+              <mxPoint x="1707" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-entra-web" edge="1" parent="1" source="entra" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6200ea;strokeWidth=1;dashed=1;fontSize=9;" target="web-box" value="OAuth2/OIDC">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-devops-web" edge="1" parent="1" source="devops" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#e65100;strokeWidth=2;dashed=1;fontSize=9;" target="web-stage-slot" value="CI/CD deploy">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-devops-api" edge="1" parent="1" source="devops" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#e65100;strokeWidth=2;dashed=1;fontSize=9;" target="api-stage-slot" value="CI/CD deploy">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1408" y="160" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-agw-web" edge="1" parent="1" source="agw-box" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#2d8a4e;strokeWidth=2;fontSize=9;" target="web-box" value="HTTP backend pool">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-agw-api" edge="1" parent="1" source="agw-box" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#2d8a4e;strokeWidth=2;fontSize=9;" target="api-box" value="HTTP backend pool">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-web-sql" edge="1" parent="1" source="web-box" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#2d8a4e;strokeWidth=2;fontSize=9;" target="pe-sqlmi-box" value=":1433 via PE">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1120" y="790" />
+              <mxPoint x="1120" y="790" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-api-sql" edge="1" parent="1" source="api-box" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#2d8a4e;strokeWidth=2;fontSize=9;" target="pe-sqlmi-box" value=":1433 via PE">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1817" y="833" />
+              <mxPoint x="1817" y="790" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-api-sb" edge="1" parent="1" source="api-box" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#e6a000;strokeWidth=2;fontSize=9;" target="sb-box" value="publish job-queue">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2590" y="833" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-sched-sb" edge="1" parent="1" source="fn-sched" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#e6a000;strokeWidth=2;fontSize=9;" target="sb-box" value="publish job-queue">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2580" y="690" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-proc-sb" edge="1" parent="1" source="fn-proc" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#e6a000;strokeWidth=1;dashed=1;fontSize=9;" target="sb-box" value="trigger">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2520" y="767" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-proc-sql" edge="1" parent="1" source="fn-proc" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#2d8a4e;strokeWidth=1;dashed=1;fontSize=9;" target="pe-sqlmi-box" value="write via PE">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-proc-storage" edge="1" parent="1" source="fn-proc" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#1565c0;strokeWidth=1;dashed=1;fontSize=9;" target="pe-storage-box" value="file via PE">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2320" y="767" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-rep-sql" edge="1" parent="1" source="fn-rep" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#2d8a4e;strokeWidth=1;dashed=1;fontSize=9;" target="pe-sqlmi-box" value="query via PE">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-web-storage" edge="1" parent="1" source="web-box" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#1565c0;strokeWidth=2;fontSize=9;" target="pe-storage-box" value="Blob/Files via PE">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="878" y="900" />
+              <mxPoint x="2540" y="900" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-kv-web" edge="1" parent="1" source="pe-kv-box" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6200ea;strokeWidth=1;dashed=1;fontSize=9;" target="web-box" value="MI: Get secrets">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-kv-api" edge="1" parent="1" source="pe-kv-box" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6200ea;strokeWidth=1;dashed=1;fontSize=9;" target="api-box" value="MI: Get secrets">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-kv-agw" edge="1" parent="1" source="kv-box" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6200ea;strokeWidth=1;dashed=1;fontSize=9;" target="agw-box" value="TLS cert">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-web-appins" edge="1" parent="1" source="web-box" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#8e24aa;strokeWidth=1;dashed=1;fontSize=9;" target="appins-box" value="telemetry SDK">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="878" y="910" />
+              <mxPoint x="2068" y="910" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e-api-appins" edge="1" parent="1" source="api-box" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#8e24aa;strokeWidth=1;dashed=1;fontSize=9;" target="appins-box" value="telemetry SDK">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-fn-appins" edge="1" parent="1" source="fn-header" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#8e24aa;strokeWidth=1;dashed=1;fontSize=9;" target="appins-box" value="telemetry SDK">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-pe-sql-int" edge="1" parent="1" source="pe-sqlmi-box" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#c62828;strokeWidth=1;fontSize=8;" target="sqlmi-box" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-pe-st-int" edge="1" parent="1" source="pe-storage-box" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#c62828;strokeWidth=1;fontSize=8;" target="storage-box" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-pe-kv-int" edge="1" parent="1" source="pe-kv-box" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#6200ea;strokeWidth=1;fontSize=8;" target="kv-box" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-sqlmi-dr" edge="1" parent="1" source="sqlmi-box" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;strokeWidth=3;dashed=1;fontSize=10;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" target="sqlmi-dr" value="Geo-replicatie · auto-failover">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-fn-sap" edge="1" parent="1" source="fn-sched" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#b85450;strokeWidth=1;dashed=1;fontSize=9;" target="onprem" value="SAP REST/SOAP via VPN">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-dfc-law" edge="1" parent="1" source="dfc-box" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#1565c0;strokeWidth=1;dashed=1;fontSize=9;" target="law-box" value="security logs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-appins-law" edge="1" parent="1" source="appins-box" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#1565c0;strokeWidth=1;fontSize=9;" target="law-box" value="workspace-based">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e-backup-sql" edge="1" parent="1" source="backup-box" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#1565c0;strokeWidth=1;dashed=1;fontSize=9;" target="sqlmi-box" value="LTR backup">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2508" y="1105" />
+              <mxPoint x="2560" y="1105" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9f9f9;strokeColor=#aaaaaa;fontSize=9;arcSize=3;verticalAlign=top;align=left;" value="&lt;b&gt;Legenda verbindingen&lt;/b&gt;&#xa;━━━ Rood/dik: Internet HTTPS / Geo-replicatie&#xa;━━━ Blauw/dik: VNet Peering Hub ⇄ Spoke&#xa;━━━ Groen: SQL · Storage · AGW backend&#xa;╌╌╌ Oranje: CI/CD deployment slots&#xa;╌╌╌ Paars: secrets / OAuth2 / telemetry&#xa;╌╌╌ Geel: Service Bus berichten&#xa;╌╌╌ Grijs: interne gebruikers via VPN+FW&#xa;╌╌╌ Rood gestippeld: On-prem · Geo-rep&#xa;&#xa;&lt;b&gt;Alle PaaS:&lt;/b&gt; geen publiek IP · Private Endpoints · MI-auth" vertex="1">
+          <mxGeometry height="180" width="440" x="656" y="2180" as="geometry" />
+        </mxCell>
+        <mxCell id="cost-summary" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff8e1;strokeColor=#f0a30a;fontSize=9;arcSize=3;verticalAlign=top;align=left;" value="&lt;b&gt;💰 Kostenschatting Prod Subscription  (~€3.400/mnd)&lt;/b&gt;&#xa;App Service P2v3 ×4 (auto-scale avg)   ~€ 580/mnd&#xa;SQL MI GP 8vCore (1jr reserved)         ~€1.100/mnd&#xa;Application Gateway WAF v2              ~€ 350/mnd&#xa;Azure Firewall Premium (Hub)             ~€ 900/mnd&#xa;VPN Gateway VpnGw1 (Hub)               ~€ 180/mnd&#xa;Storage LRS + Azure Files               ~€  30/mnd&#xa;Service Bus Standard                    ~€  10/mnd&#xa;Function App Consumption                ~€  15/mnd&#xa;KV + Defender + Monitor + Backup        ~€ 235/mnd&#xa;━━━━━━━━━━━━━━━━━━━━━━&#xa;Totaal (schatting)                      ~€3.400/mnd" vertex="1">
+          <mxGeometry height="180" width="380" x="1116" y="2180" as="geometry" />
+        </mxCell>
+        <mxCell id="P5mnqJVfZtcatpD8n8Fw-1" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/networking/Web_Application_Firewall_Policies_WAF.svg;" value="" vertex="1">
+          <mxGeometry height="49" width="49" x="1078" y="561" as="geometry" />
+        </mxCell>
+        <mxCell id="P5mnqJVfZtcatpD8n8Fw-2" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/security/Key_Vaults.svg;" value="" vertex="1">
+          <mxGeometry height="50" width="50" x="1078" y="620" as="geometry" />
+        </mxCell>
+        <mxCell id="P5mnqJVfZtcatpD8n8Fw-3" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/app_services/App_Service_Plans.svg;" value="" vertex="1">
+          <mxGeometry height="39" width="39" x="788" y="729" as="geometry" />
+        </mxCell>
+        <mxCell id="P5mnqJVfZtcatpD8n8Fw-4" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/app_services/App_Services.svg;" value="" vertex="1">
+          <mxGeometry height="50" width="50" x="704" y="808" as="geometry" />
+        </mxCell>
+        <mxCell id="P5mnqJVfZtcatpD8n8Fw-5" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/app_services/App_Services.svg;" value="" vertex="1">
+          <mxGeometry height="50" width="50" x="1138" y="818" as="geometry" />
+        </mxCell>
+        <mxCell id="P5mnqJVfZtcatpD8n8Fw-6" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/other/Azure_Communication_Services.svg;" value="" vertex="1">
+          <mxGeometry height="35" width="47.6" x="1200" y="972.5" as="geometry" />
+        </mxCell>
+        <mxCell id="P5mnqJVfZtcatpD8n8Fw-7" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/iot/Function_Apps.svg;" value="" vertex="1">
+          <mxGeometry height="36" width="40.8" x="1679.2" y="562" as="geometry" />
+        </mxCell>
+        <mxCell id="P5mnqJVfZtcatpD8n8Fw-11" parent="1" style="verticalLabelPosition=bottom;html=1;verticalAlign=top;align=center;strokeColor=none;fillColor=#00BEF2;shape=mxgraph.azure.storage_blob;" value="" vertex="1">
+          <mxGeometry height="45" width="50" x="2143" y="912" as="geometry" />
+        </mxCell>
+        <mxCell id="P5mnqJVfZtcatpD8n8Fw-12" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/storage/Storage_Accounts.svg;" value="" vertex="1">
+          <mxGeometry height="38" width="47.5" x="2210" y="918" as="geometry" />
+        </mxCell>
+        <mxCell id="P5mnqJVfZtcatpD8n8Fw-14" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/databases/SQL_Managed_Instance.svg;" value="" vertex="1">
+          <mxGeometry height="44" width="44.69" x="2210" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="P5mnqJVfZtcatpD8n8Fw-15" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/analytics/Log_Analytics_Workspaces.svg;" value="" vertex="1">
+          <mxGeometry height="64" width="64" x="2330" y="1290" as="geometry" />
+        </mxCell>
+        <mxCell id="P5mnqJVfZtcatpD8n8Fw-16" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/devops/Application_Insights.svg;" value="" vertex="1">
+          <mxGeometry height="63" width="44" x="1890" y="1290" as="geometry" />
+        </mxCell>
+        <mxCell id="P5mnqJVfZtcatpD8n8Fw-17" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/management_governance/Monitor.svg;" value="" vertex="1">
+          <mxGeometry height="64" width="64" x="1890" y="1480" as="geometry" />
+        </mxCell>
+        <mxCell id="P5mnqJVfZtcatpD8n8Fw-18" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/other/Backup_Vault.svg;" value="" vertex="1">
+          <mxGeometry height="57.96" width="68" x="2328" y="1503" as="geometry" />
+        </mxCell>
+        <mxCell id="P5mnqJVfZtcatpD8n8Fw-19" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/security/Key_Vaults.svg;" value="" vertex="1">
+          <mxGeometry height="68" width="68" x="1082" y="1330" as="geometry" />
+        </mxCell>
+        <mxCell id="P5mnqJVfZtcatpD8n8Fw-20" parent="1" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/identity/Entra_Managed_Identities.svg;" value="" vertex="1">
+          <mxGeometry height="60.440000000000005" width="68" x="1200" y="1338" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
