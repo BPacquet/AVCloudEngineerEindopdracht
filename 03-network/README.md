@@ -116,24 +116,54 @@ Documenteer de **minimaal vereiste NSG-regels** per subnet. Gebruik onderstaande
 | 4096 | Deny-All | Inbound | `*` | `*` | `*` | `*` | Deny |
 
 **Vul aan**: Maak vergelijkbare NSG-tabellen voor `nsg-func` en `nsg-data`.
-
+NSG: nsg-func (snet-spoke-func 10.20.5.0/27)
+AppServiceManagement op poort 454/455 is verplicht — zonder deze regel gaan Function App-instanties offline. Poort 5672 is toegevoegd naast 5671 omdat de Service Bus trigger-SDK beide AMQP-poorten kan gebruiken.
+| Prioriteit | Naam                  | Richting | Protocol | Bron                 | Doel                       | Poort         | Actie |
+| ---------- | --------------------- | -------- | -------- | -------------------- | -------------------------- | ------------- | ----- |
+| 100        | Allow-AGW-to-Func     | Inbound  | TCP      | 10.20.0.0/27         | `*`                        | 443           | Allow |
+| 110        | Allow-AppSvcMgmt      | Inbound  | TCP      | AppServiceManagement | `*`                        | 454,455       | Allow |
+| 4096       | Deny-All-Inbound      | Inbound  | `*`      | `*`                  | `*`                        | `*`           | Deny  |
+| 200        | Allow-Func-to-SQL     | Outbound | TCP      | `*`                  | 10.20.4.4/32               | 1433          | Allow |
+| 210        | Allow-Func-to-Storage | Outbound | TCP      | `*`                  | 10.20.2.5/32               | 443           | Allow |
+| 220        | Allow-Func-to-KV      | Outbound | TCP      | `*`                  | 10.20.3.4/32               | 443           | Allow |
+| 230        | Allow-Func-to-SB      | Outbound | TCP      | `*`                  | 10.20.2.7/32               | 443,5671,5672 | Allow |
+| 240        | Allow-Func-to-SAP     | Outbound | TCP      | `*`                  | 192.168.1.20/32            | 443,8080,3300 | Allow |
+| 250        | Allow-Func-to-CommSvc | Outbound | TCP      | `*`                  | AzureCommunicationServices | 443           | Allow |
+| 260        | Allow-Func-to-DNS     | Outbound | UDP      | `*`                  | 168.63.129.16/32           | 53            | Allow |
+| 270        | Allow-Func-to-Azure   | Outbound | TCP      | `*`                  | AzureCloud                 | 443           | Allow |
+| 4096       | Deny-All-Outbound     | Outbound | `*`      | `*`                  | `*`                        | `*`           | Deny  |
 ---
-
+NSG: nsg-data — snet-spoke-data 10.20.2.0/24 (Private Endpoints: Storage · Service Bus)
+| Prioriteit | Naam                    | Richting | Protocol | Bron           | Doel         | Poort           | Actie |
+| ---------- | ----------------------- | -------- | -------- | -------------- | ------------ | --------------- | ----- |
+| 100        | Allow-App-to-Blob-PE    | Inbound  | TCP      | 10.20.1.0/24   | 10.20.2.5/32 | 443             | Allow |
+| 110        | Allow-Func-to-Blob-PE   | Inbound  | TCP      | 10.20.5.0/27   | 10.20.2.5/32 | 443             | Allow |
+| 120        | Allow-App-to-File-PE    | Inbound  | TCP      | 10.20.1.0/24   | 10.20.2.6/32 | 443             | Allow |
+| 130        | Allow-App-to-SB-PE      | Inbound  | TCP      | 10.20.1.0/24   | 10.20.2.7/32 | 443, 5671       | Allow |
+| 140        | Allow-Func-to-SB-PE     | Inbound  | TCP      | 10.20.5.0/27   | 10.20.2.7/32 | 443, 5671, 5672 | Allow |
+| 150        | Allow-Onprem-to-Storage | Inbound  | TCP      | 192.168.0.0/16 | 10.20.2.5/32 | 443             | Allow |
+| 4096       | Deny-All-Inbound        | Inbound  | *        | *              | *            | *               | Deny  |
 ## private endpoints
 
 Documenteer alle **Private Endpoints** in de architectuur:
 
 | Resource | Private Endpoint naam | Subnet | DNS Zone |
 |---|---|---|---|
-| Azure SQL Database | `pep-sql-contoso-prd` | `snet-spoke-data` | `privatelink.database.windows.net` |
-| Storage Account | `pep-st-contoso-prd` | `snet-spoke-data` | `privatelink.blob.core.windows.net` |
-| Key Vault | `pep-kv-contoso-prd` | `snet-spoke-data` | `privatelink.vaultcore.azure.net` |
-| App Service (optioneel) | `pep-app-contoso-prd` | `snet-spoke-web` | `privatelink.azurewebsites.net` |
+| Resource               | Private Endpoint naam   | Subnet              | DNS Zone                           |
+| ---------------------- | ----------------------- | ------------------- | ---------------------------------- |
+| SQL Managed Instance   | pep-sqlmi-contoso-prd   | snet-spoke-sqlmi    | privatelink.database.windows.net   |
+| Storage Account (blob) | pep-st-blob-contoso-prd | snet-spoke-data     | privatelink.blob.core.windows.net  |
+| Storage Account (file) | pep-st-file-contoso-prd | snet-spoke-data     | privatelink.file.core.windows.net  |
+| Key Vault              | pep-kv-contoso-prd      | snet-spoke-security | privatelink.vaultcore.azure.net    |
+| Service Bus            | pep-sb-contoso-prd      | snet-spoke-data     | privatelink.servicebus.windows.net |
+| App Service (web)      | pep-web-contoso-prd     | snet-spoke-app      | privatelink.azurewebsites.net      |
+| App Service (api)      | pep-api-contoso-prd     | snet-spoke-app      | privatelink.azurewebsites.net      |
 
 ### waarom private endpoints?
 
 Documenteer in 3–5 zinnen waarom je Private Endpoints gebruikt in plaats van Service Endpoints. Wat zijn de voordelen en nadelen?
-
+Private endpoints geven een prive-IP adres in het vnet, daardoor zijn ze publiek niet toegankelijk waardoor ze veiliger zijn voor aanvallen van buitenaf.
+Ze werken ook goed voor verbindingen van On-premises,omdat alles via DNS en VPN naar het ineterne IP gaat. Het nadeel is dat ze meer kosten en extra werk geven om uw DNS en Private iP te beheren.
 ---
 
 ## DNS-architectuur
@@ -169,6 +199,7 @@ Azure SQL Database (via private network, geen publiek internet)
 ```
 
 **Vul in**: Teken dit diagram netter en documenteer welke DNS-forwarder-configuratie nodig is op DC01.
+<img width="1472" height="1480" alt="image" src="https://github.com/user-attachments/assets/c9856861-07f9-4416-853d-36df71a8cf95" />
 
 ---
 
