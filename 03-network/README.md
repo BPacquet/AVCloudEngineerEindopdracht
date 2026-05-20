@@ -133,8 +133,8 @@ Documenteer alle **Private Endpoints** in de architectuur:
 ### waarom private endpoints?
 Documenteer in 3–5 zinnen waarom je Private Endpoints gebruikt in plaats van Service Endpoints. Wat zijn de voordelen en nadelen?
 
-Private endpoints geven een prive-IP adres in het vnet, daardoor zijn ze publiek niet toegankelijk waardoor ze veiliger zijn voor aanvallen van buitenaf.
-Ze werken ook goed voor verbindingen van On-premises,omdat alles via DNS en VPN naar het ineterne IP gaat. Het nadeel is dat ze meer kosten en extra werk geven om uw DNS en Private iP te beheren.
+### Private endpoints geven een prive-IP adres in het vnet, daardoor zijn ze publiek niet toegankelijk waardoor ze veiliger zijn voor aanvallen van buitenaf.
+### Ze werken ook goed voor verbindingen van On-premises,omdat alles via DNS en VPN naar het interne IP gaat. Het nadeel is dat ze meer kosten en extra werk geven om uw DNS en Private iP te beheren.
 ---
 
 ## DNS-architectuur
