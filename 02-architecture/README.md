@@ -20,36 +20,289 @@ Ontwerp de volledige Azure-architectuur voor de gemigreerde Contoso-applicatie. 
 
 Een **Platform Landing Zone** is de funderende infrastructuur die alle workloads ondersteunt. Ze bestaat uit gedeelde services (hub networking, identity, monitoring) en de governance-structuur die consistentie afdwingt over alle subscriptions.
 
-### verwachte structuur
+### structuur
 
-Teken het volgende hiërarchisch diagram:
-
+Tenant Root Group
+└── Contoso Manufacturing (MG)
+    ├── Platform (MG)
+    └── Landing Zones (MG)
+        └── Corp (MG)
+            ├── Contoso-Prod (Subscription)
+            └── Contoso-NonProd (Subscription)
 ```
 Tenant Root Group
-└── Contoso Manufacturing (Management Group)
-    ├── Platform (Management Group)
-    │   ├── Identity Subscription
-    │   │   └── Hub VNet, DC-replica, Entra Connect
-    │   ├── Management Subscription
-    │   │   └── Log Analytics, Automation, Backup Vault
-    │   └── Connectivity Subscription
-    │       └── Hub VNet, Firewall, VPN/ExpressRoute, DNS
-    └── Landing Zones (Management Group)
-        ├── Corp (Management Group)
-        │   ├── Contoso-Prod Subscription
-        │   └── Contoso-NonProd Subscription
-        └── Online (Management Group — optioneel)
-```
+| Veld     | Waarde                                                |
+| -------- | ----------------------------------------------------- |
+| Naam     | Tenant Root Group                                     |
+| Tenant   | contoso.onmicrosoft.com                               |
+| Doel     | Bovenste knooppunt van de management group-hiërarchie |
+| Policies | Geen policies op dit niveau                           |
 
 ### te documenteren per laag
+LAAG1
+Contoso Manufacturing MG
+| Veld     | Waarde                                                |
+| -------- | ----------------------------------------------------- |
+| Naam     | Contoso Manufacturing                                 |
+| Doel     | Organisatiebrede governance voor alle Azure-resources |
+| Policies | Azure Security Benchmark                              |
+|          | Verplichte tags: env · owner · costcenter             |
+|          | Allowed regions: West Europe · North Europe           |
 
-| Laag | Wat documenteer je? |
-|---|---|
-| Management Groups | Naam, doel, welke policies worden hier toegewezen |
-| Subscriptions | Naam, doel, resource group structuur |
-| Connectivity | Hub VNet CIDR, Firewall, Gateway type |
-| Identity | Entra ID (Azure AD) tenant, Entra Connect sync, Conditional Access |
-| Management | Log Analytics workspace, Automation Account, Backup |
+Platform MG
+| Veld     | Waarde                                     |
+| -------- | ------------------------------------------ |
+| Naam     | Platform                                   |
+| Doel     | Governance voor gedeelde platform-services |
+| Policies | Diagnostics verplicht naar Log Analytics   |
+|          | RBAC baseline (Owner alleen via PIM)       |
+|          | Key Vault soft-delete verplicht            |
+
+Landing Zones MG
+| Veld     | Waarde                                        |
+| -------- | --------------------------------------------- |
+| Naam     | Landing Zones                                 |
+| Doel     | Overkoepelende MG voor workload subscriptions |
+| Policies | Defender for Cloud verplicht                  |
+|          | Network Watcher verplicht                     |
+|          | Alleen goedgekeurde VM SKUs                   |
+|          | Geen Classic resources                        |
+
+Corp MG
+| Veld     | Waarde                                    |
+| -------- | ----------------------------------------- |
+| Naam     | Corp                                      |
+| Doel     | Governance voor interne bedrijfsworkloads |
+| Policies | VNet integration verplicht                |
+|          | Geen Public IPs                           |
+|          | Private Endpoints verplicht               |
+|          | Geen direct outbound internet             |
+
+Laag 2 — Subscriptions
+
+Connectivity Subscription
+| Veld            | Waarde                                             |
+| --------------- | -------------------------------------------------- |
+| Naam            | Connectivity                                       |
+| Doel            | Centrale netwerkdiensten                           |
+| Resource groups | rg-hub-network · rg-firewall · rg-gateway · rg-dns |
+
+Management Subscription
+| Veld            | Waarde                                    |
+| --------------- | ----------------------------------------- |
+| Naam            | Management                                |
+| Doel            | Monitoring, backup en automatisering      |
+| Resource groups | rg-management · rg-backup · rg-automation |
+
+Identity Subscription
+| Veld            | Waarde                      |
+| --------------- | --------------------------- |
+| Naam            | Identity                    |
+| Doel            | Hybride identiteitsdiensten |
+| Resource groups | rg-identity · rg-adc        |
+
+Contoso-Prod Subscription
+| Veld             | Waarde                                    |
+| ---------------- | ----------------------------------------- |
+| Naam             | Contoso-Prod                              |
+| Doel             | Productieworkloads                        |
+| Resource groups  | rg-prod-app · rg-prod-db · rg-prod-shared |
+| Management Group | Corp                                      |
+
+Contoso-NonProd Subscription
+| Veld             | Waarde                   |
+| ---------------- | ------------------------ |
+| Naam             | Contoso-NonProd          |
+| Doel             | Dev/test/staging         |
+| Extra            | Auto-shutdown om 20:00   |
+| Resource groups  | rg-dev-app · rg-test-app |
+| Management Group | Corp                     |
+
+Laag 3 — Connectivity
+
+Hub VNet
+| Veld           | Waarde         |
+| -------------- | -------------- |
+| Naam           | Hub VNet       |
+| CIDR           | 10.0.0.0/16    |
+| Subscription   | Connectivity   |
+| Resource group | rg-hub-network |
+| Regio          | West Europe    |
+
+Hub subnetten
+| Subnet                        | CIDR         | Doel                       | NSG               |
+| ----------------------------- | ------------ | -------------------------- | ----------------- |
+| AzureFirewallSubnet           | 10.0.0.0/26  | Azure Firewall Premium     | Niet ondersteund  |
+| AzureFirewallManagementSubnet | 10.0.0.64/26 | Firewall management NIC    | Niet ondersteund  |
+| GatewaySubnet                 | 10.0.0.32/27 | VPN Gateway / ExpressRoute | Niet ondersteund  |
+| AzureBastionSubnet            | 10.0.2.0/27  | Azure Bastion              | Vast Azure beleid |
+| snet-hub-dns                  | 10.0.3.0/28  | DNS Private Resolver       | Ja                |
+| snet-hub-mgmt                 | 10.0.4.0/28  | Management VMs             | Ja                |
+
+Azure Firewall
+| Veld           | Waarde                                               |
+| -------------- | ---------------------------------------------------- |
+| Naam           | fw-contoso-hub-001                                   |
+| SKU            | Premium                                              |
+| Private IP     | 10.0.0.4                                             |
+| Features       | IDPS · TLS-inspectie · Threat Intel · FQDN-filtering |
+| Doel           | Centraal egress-punt                                 |
+| Resource group | rg-firewall                                          |
+
+VPN Gateway
+
+| Veld           | Waarde                   |
+| -------------- | ------------------------ |
+| Naam           | vpngw-contoso-hub-weu    |
+| SKU            | VpnGw1 Generation2       |
+| Type           | Route-based              |
+| BGP            | Ingeschakeld (ASN 65000) |
+| Active/Active  | Ja                       |
+| Verbindingen   | Gent · Luik · Hasselt    |
+| Resource group | rg-gateway               |
+
+Azure Bastion
+| Veld           | Waarde                |
+| -------------- | --------------------- |
+| SKU            | Basic                 |
+| Doel           | Browser-based SSH/RDP |
+| Resource group | rg-hub-network        |
+
+DNS Private Resolver
+| Veld             | Waarde                                |
+| ---------------- | ------------------------------------- |
+| Naam             | dnspr-contoso-hub-001                 |
+| Subnet           | snet-hub-dns                          |
+| Inbound endpoint | 10.0.3.4                              |
+| Doel             | DNS-forwarding voor privatelink zones |
+
+Private DNS Zones
+| Zone                               | Doel                 |
+| ---------------------------------- | -------------------- |
+| privatelink.database.windows.net   | SQL Managed Instance |
+| privatelink.blob.core.windows.net  | Storage Blob         |
+| privatelink.file.core.windows.net  | Storage Files        |
+| privatelink.vaultcore.azure.net    | Key Vault            |
+| privatelink.servicebus.windows.net | Service Bus          |
+| privatelink.azurewebsites.net      | App Service          |
+| contoso.internal                   | Interne records      |
+
+VNet Peerings
+| Spoke          | CIDR         | Gateway transit |
+| -------------- | ------------ | --------------- |
+| Spoke-Prod     | 10.20.0.0/16 | Ja              |
+| Spoke-NonProd  | 10.30.0.0/16 | Ja              |
+| Spoke-Identity | 10.40.0.0/24 | Ja              |
+
+UDR
+| Route          | Next hop                |
+| -------------- | ----------------------- |
+| 0.0.0.0/0      | Azure Firewall 10.0.0.4 |
+| 192.168.1.0/24 | Azure Firewall 10.0.0.4 |
+| 192.168.2.0/24 | Azure Firewall 10.0.0.4 |
+| 192.168.3.0/24 | Azure Firewall 10.0.0.4 |
+| SqlManagement  | Internet                |
+
+Laag 4 — Identity
+
+Entra ID
+| Veld     | Waarde                     |
+| -------- | -------------------------- |
+| Tenant   | contoso.onmicrosoft.com    |
+| Type     | Hybride identiteit         |
+| Licentie | Entra ID P1                |
+| Doel     | Centrale identity provider |
+
+Entra Connect Sync
+| Veld            | Waarde                                       |
+| --------------- | -------------------------------------------- |
+| Methode         | Password Hash Sync                           |
+| Sync interval   | 30 minuten                                   |
+| Primaire server | vm-entraconnect-01                           |
+| Staging server  | vm-entraconnect-02                           |
+| Bron            | On-prem AD DS                                |
+| Doel            | Synchronisatie van users, groepen en devices |
+
+DC-replica in Azure
+
+| Veld           | Waarde                              |
+| -------------- | ----------------------------------- |
+| VM namen       | vm-dc-01 · vm-dc-02                 |
+| OS             | Windows Server 2022                 |
+| Configuratie   | HA pair                             |
+| Subnet         | 10.40.0.0/24                        |
+| Doel           | Lokale authenticatie bij VPN-uitval |
+| Resource group | rg-adc                              |
+
+Conditional Access
+| Beleid            | Configuratie                   |
+| ----------------- | ------------------------------ |
+| MFA               | Verplicht voor alle gebruikers |
+| Compliant devices | Intune vereist                 |
+| Legacy auth       | Geblokkeerd                    |
+| Named locations   | Gent · Luik · Hasselt          |
+
+PIM
+| Veld          | Waarde                           |
+| ------------- | -------------------------------- |
+| Toegangstype  | Eligible assignments             |
+| Activatieduur | Max 4 uur                        |
+| Goedkeuring   | Verplicht voor Owner/Contributor |
+| Audit         | Naar Log Analytics               |
+| Doel          | Just-in-Time admin toegang       |
+
+Azure Key Vault
+| Veld           | Waarde                                       |
+| -------------- | -------------------------------------------- |
+| Naam           | kv-contoso-platform-001                      |
+| Inhoud         | Secrets · certificaten · sleutels            |
+| Features       | Soft-delete · purge protection · Managed HSM |
+| Resource group | rg-identity                                  |
+
+Laag 5 — Management
+
+Log Analytics Workspace
+| Veld              | Waarde                            |
+| ----------------- | --------------------------------- |
+| Naam              | law-contoso-mgmt-001              |
+| Regio             | West Europe                       |
+| Hot retention     | 90 dagen                          |
+| Archive retention | 2 jaar                            |
+| Scope             | Alle subscriptions                |
+| Features          | KQL · Dashboards · Sentinel-ready |
+| Resource group    | rg-management                     |
+
+Azure Monitor
+| Veld           | Waarde                                                 |
+| -------------- | ------------------------------------------------------ |
+| Alerts         | CPU · SQL storage · Backup failures · Firewall threats |
+| Action groups  | Email · Teams webhook                                  |
+| Features       | Metrics · Autoscale · Dashboards                       |
+| Resource group | rg-management                                          |
+
+Automation Account
+| Veld           | Waarde                            |
+| -------------- | --------------------------------- |
+| Features       | Update Management · VM start/stop |
+| Runbooks       | GitHub source control             |
+| Taken          | Auto-shutdown · Bicep deployments |
+| Resource group | rg-automation                     |
+
+Recovery Services Vault
+| Veld           | Waarde                            |
+| -------------- | --------------------------------- |
+| Naam           | rsv-contoso-mgmt-001              |
+| Redundantie    | GRS                               |
+| Retentie       | 30 dagen                          |
+| Scope          | SQL MI · Azure Files · VM backups |
+| Resource group | rg-backup                         |
+
+Cost Management
+| Veld          | Waarde                                 |
+| ------------- | -------------------------------------- |
+| Budget alerts | 80% waarschuwing · 100% actie          |
+| Export        | Dagelijkse export naar Storage Account |
+| Scope         | Per subscription + totaal              |
 
 ### diagram vereisten (Platform LZ)
 
