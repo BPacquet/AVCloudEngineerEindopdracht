@@ -11,7 +11,7 @@ Vul in: Welke kies jij en waarom?
 # ADR-001: Hostingplatform — App Service
 
 ## Beslissing
-Is kies voor Azure App Service Plan P2v3 (Windows).
+Ik kies voor Azure App Service Plan P2v3 (Windows).
 
 ## Motivatie
 De huidige applicatie draait op ASP.NET WebForms (.NET Framework 4.8).
