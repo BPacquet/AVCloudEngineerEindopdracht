@@ -116,6 +116,7 @@ Documenteer de **minimaal vereiste NSG-regels** per subnet. Gebruik onderstaande
 | 4096 | Deny-All | Inbound | `*` | `*` | `*` | `*` | Deny |
 
 **Vul aan**: Maak vergelijkbare NSG-tabellen voor `nsg-func` en `nsg-data`.
+
 NSG: nsg-func (snet-spoke-func 10.20.5.0/27)
 AppServiceManagement op poort 454/455 is verplicht — zonder deze regel gaan Function App-instanties offline. Poort 5672 is toegevoegd naast 5671 omdat de Service Bus trigger-SDK beide AMQP-poorten kan gebruiken.
 | Prioriteit | Naam                  | Richting | Protocol | Bron                 | Doel                       | Poort         | Actie |
