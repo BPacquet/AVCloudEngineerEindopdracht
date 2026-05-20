@@ -86,8 +86,16 @@ Ontwerp minimaal de volgende subnetten. Kies zelf de CIDR-ranges (documenteer je
 **Vul in**: Kies je CIDR-ranges en onderbouw de grootte (hoeveel IP-adressen heb je nodig?).
 
 > 💡 Tip: Azure reserveert 5 IP-adressen per subnet (0, 1, 2, 3, 255). Plan daar rekening mee.
+.0 (network), .1 (default gateway), .2 en .3 (Azure DNS), .255 (broadcast).
+> 
+| Subnet           | CIDR         | Totaal | Bruikbaar | Dimensionering                                                                                                                             |
+| ---------------- | ------------ | ------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| snet-spoke-appgw | 10.20.0.0/27 | 32     | 27        | AGW WAF v2 vereist 1 IP per instantie + VIP. Max 10 instanties bij Contoso = 11 IPs. /27 geeft 27 bruikbare adressen — ruim voldoende.                        |
+| snet-spoke-web   | 10.20.1.0/24 | 256    | 251       | App Service VNet Integration delegeert het hele subnet aan het platform. Microsoft vereist min. /27 per App Service Plan. Met 2 plans (web + api) en auto-scale tot 6 instanties elk = 12 IPs actief. /24 geeft groeimarge voor extra plans |
+| snet-spoke-func  | 10.20.2.0/27 | 32     | 27        | Function Apps met lage gelijktijdigheid. Microsoft vereist minimaal /27, dus dit is voldoende voor huidige workloads.                      |
+| snet-spoke-data  | 10.20.3.0/24 | 256    | 251       | Alleen Private Endpoints (elk 1 IP). Huidig ~5 PE’s, /24 geeft voldoende ruimte voor uitbreiding zonder toekomstige herindeling.                       |
+| snet-spoke-mgmt  | 10.20.4.0/27 | 32     | 27        | Management VMs en DevOps agents (±5–10 verwacht). /27 biedt voldoende capaciteit met marge.                                                |
 
----
 
 ## NSG-regels
 
@@ -161,8 +169,8 @@ Documenteer alle **Private Endpoints** in de architectuur:
 | App Service (api)      | pep-api-contoso-prd     | snet-spoke-app      | privatelink.azurewebsites.net      |
 
 ### waarom private endpoints?
-
 Documenteer in 3–5 zinnen waarom je Private Endpoints gebruikt in plaats van Service Endpoints. Wat zijn de voordelen en nadelen?
+
 Private endpoints geven een prive-IP adres in het vnet, daardoor zijn ze publiek niet toegankelijk waardoor ze veiliger zijn voor aanvallen van buitenaf.
 Ze werken ook goed voor verbindingen van On-premises,omdat alles via DNS en VPN naar het ineterne IP gaat. Het nadeel is dat ze meer kosten en extra werk geven om uw DNS en Private iP te beheren.
 ---
