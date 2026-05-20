@@ -15,45 +15,7 @@ Ontwerp het volledige Azure-netwerk voor de Contoso-migratie. Je documenterrt he
 
 ### topologie: hub-spoke
 
-Gebruik de **Hub-Spoke netwerktopologie** als basis. Dit is de Microsoft-aanbevolen topologie voor Enterprise-omgevingen en sluit aan bij de Landing Zone architectuur.
-
-```
-                         ┌─────────────────────────────────┐
-                         │   CONNECTIVITY SUBSCRIPTION     │
-                         │                                 │
-   ON-PREMISES           │   ┌─────────────────────────┐   │
-   10.10.0.0/16  ◄───────┼───┤   HUB VNet              │   │
-   (Gent/Luik/           │   │   10.0.0.0/16           │   │
-    Hasselt)             │   │                         │   │
-        │                │   │  ┌─────────────────┐   │   │
-        │ VPN/ExpressRoute│   │  │ AzureFirewallSub│   │   │
-        │                │   │  │ 10.0.0.0/26     │   │   │
-        │                │   │  └─────────────────┘   │   │
-        │                │   │  ┌─────────────────┐   │   │
-        │                │   │  │ GatewaySubnet   │   │   │
-        │                │   │  │ 10.0.1.0/27     │   │   │
-        │                │   │  └─────────────────┘   │   │
-        │                │   │  ┌─────────────────┐   │   │
-        │                │   │  │ AzureBastionSub │   │   │
-        │                │   │  │ 10.0.2.0/27     │   │   │
-        │                │   │  └─────────────────┘   │   │
-        │                │   └─────────────────────────┘   │
-        └────────────────┼───────────────┐                 │
-                         │               │ VNet Peering     │
-                         │               ▼                 │
-                         └─────────────────────────────────┘
-                                         │
-                         ┌───────────────▼─────────────────┐
-                         │   WORKLOAD SUBSCRIPTION         │
-                         │                                 │
-                         │   ┌─────────────────────────┐   │
-                         │   │   SPOKE VNet            │   │
-                         │   │   10.20.0.0/16          │   │
-                         │   │                         │   │
-                         │   │  [subnetten — zie onder]│   │
-                         │   └─────────────────────────┘   │
-                         └─────────────────────────────────┘
-```
+<img width="1472" height="1360" alt="image" src="https://github.com/user-attachments/assets/dd1413bc-8428-449b-8022-a857c7bef41e" />
 
 ---
 
@@ -212,7 +174,7 @@ Azure SQL Database (via private network, geen publiek internet)
 
 ---
 
-## azure firewall regels
+6. azure firewall regels
 
 Documenteer de **minimaal vereiste Azure Firewall regels**:
 
@@ -231,10 +193,84 @@ Documenteer de **minimaal vereiste Azure Firewall regels**:
 | Allow-Onprem-to-Azure | `10.10.0.0/16` | TCP | `10.20.0.0/16` | 443,1433 | Allow |
 | Allow-Azure-to-Onprem-SMTP | `10.20.0.0/16` | TCP | `10.10.X.X` (Exchange) | 25 | Allow |
 
-**Vul aan**: Voeg alle vereiste regels toe voor de Contoso applicatie.
+Contoso applicatie
+| Naam                | Bron         | Protocol             | Target FQDN                                                                 | Actie |
+| ------------------- | ------------ | -------------------- | --------------------------------------------------------------------------- | ----- |
+| Allow-WindowsUpdate | 10.20.0.0/16 | HTTPS:443            | *.update.microsoft.com, *.windowsupdate.com                                 | Allow |
+| Allow-AzureMonitor  | 10.20.0.0/16 | HTTPS:443            | *.monitor.azure.com, *.ods.opinsights.azure.com, *.oms.opinsights.azure.com | Allow |
+| Allow-AzureAD       | 10.20.0.0/16 | HTTPS:443            | login.microsoftonline.com, *.microsoftonline.com, graph.microsoft.com       | Allow |
+| Allow-SAP-API       | 10.20.0.0/16 | HTTPS:443, HTTP:8080 | sap-api.contoso.local, sap.contoso.be                                       | Allow |
+| Allow-CommServices  | 10.20.0.0/16 | HTTPS:443            | *.communication.azure.com                                                   | Allow |
+| Allow-KV-CRL        | 10.20.0.0/16 | HTTP:80, HTTPS:443   | crl.microsoft.com, ocsp.msocsp.com                                          | Allow |
+| Allow-EntraConnect  | 10.40.0.0/24 | HTTPS:443            | *.msappproxy.net, *.servicebus.windows.net                                  | Allow |
+| Allow-DevOps-Agents | 10.20.4.0/27 | HTTPS:443            | *.dev.azure.com, *.visualstudio.com, *.vsblob.visualstudio.com              | Allow |
+| Deny-All-App        | *            | *                    | *                                                                           | Deny  |
+
 
 ---
+| Naam                   | Bron           | Protocol | Doel            | Poort                 | Actie |
+| ---------------------- | -------------- | -------- | --------------- | --------------------- | ----- |
+| Allow-Onprem-to-AGW    | 192.168.0.0/16 | TCP      | 10.20.0.0/27    | 443                   | Allow |
+| Allow-Onprem-to-SQL    | 192.168.0.0/16 | TCP      | 10.20.4.4/32    | 1433                  | Allow |
+| Allow-Onprem-to-KV     | 192.168.0.0/16 | TCP      | 10.20.3.4/32    | 443                   | Allow |
+| Allow-Onprem-to-Mgmt   | 192.168.0.0/16 | TCP      | 10.20.4.0/27    | 22, 3389              | Allow |
+| Allow-Azure-to-SAP     | 10.20.0.0/16   | TCP      | 192.168.1.20/32 | 443, 8080, 3300       | Allow |
+| Allow-AD-Replication   | 10.40.0.0/24   | TCP/UDP  | 192.168.1.10/32 | 389, 636, 53, 88, 445 | Allow |
+| Allow-DC-RPC           | 10.40.0.0/24   | TCP      | 192.168.0.0/16  | 49152–65535           | Allow |
+| Allow-SqlMI-Management | 10.20.4.0/24   | TCP      | SqlManagement   | 80, 443, 12000        | Allow |
+| Allow-NTP              | 10.20.0.0/16   | UDP      | 40.119.6.228/32 | 123                   | Allow |
+| Deny-All-Net           | *              | *        | *               | *                     | Deny  |
 
+
+DNAT: geen — inbound verkeer gaat via Application Gateway WAF v2 (pip-agw-prd), Azure Firewall is enkel voor egress en east-west verkeer.
+
+AD Replication en DC-RPC zijn nodig zodat de domain controller in Azure kan blijven synchroniseren met de on-prem DC in Gent. Zonder deze regels stopt Entra Connect en werkt AD-authenticatie niet meer bij VPN-uitval.
+SqlMI-Management is nodig voor SQL Managed Instance om met Azure beheerdiensten te communiceren via de service tag. Dit werkt samen met de route die SQL management verkeer buiten de firewall om laat lopen
+---
+8.Vpn of expressRoute? 
+| Verkeerstype             | Wat gebeurt er?                     | Volume          | Belang        |
+| ------------------------ | ----------------------------------- | --------------- | ------------- |
+| AD-replicatie            | Sync tussen DC01 (Gent) en Azure DC | Laag            | Kritisch      |
+| Entra Connect            | Identiteitssync naar Microsoft 365  | Zeer laag       | Kritisch      |
+| SAP calls                | Periodieke API/SOAP calls           | Laag (MB’s/dag) | Belangrijk    |
+| Beheer (Bastion/RDP/SSH) | Admin toegang tot servers           | Laag            | Operationeel  |
+| DNS queries              | Via Private DNS Resolver            | Minimaal        | Ondersteunend |
+
+
+👉 Geen gebruikersverkeer en geen grote databundels gaan door de VPN.
+
+VPN vs ExpressRoute
+| Aspect           | VPN Gateway (huidig)           | ExpressRoute                            |
+| ---------------- | ------------------------------ | --------------------------------------- |
+| Type verbinding  | Over internet (versleuteld)    | Privé dedicated lijn                    |
+| Bandbreedte      | ±650 Mbps (meer dan voldoende) | 50 Mbps tot multi-Gbps                  |
+| Gebruik Contoso  | Alleen beheer + synchronisatie | Grote datastromen en kritieke workloads |
+| Latency          | ~8–15 ms                       | Lager en stabieler (minder jitter)      |
+| Kost             | ±€180/maand                    | ±€500–€1800/maand                       |
+| Complexiteit     | Laag                           | Hoog                                    |
+| Nood bij Contoso | ✔ Volstaat                     | ❌ Niet nodig in huidige situatie        |
+
+Voordelen & nadelen
+
+VPN Gateway (gekozen)
+✔ Goedkoop en snel te implementeren
+✔ Meer dan genoeg voor beheerverkeer
+✔ Minder complex (geen carrier nodig)
+✖ Minder geschikt voor grote datastromen
+✖ Minder “enterprise-grade” dan ExpressRoute
+
+ExpressRoute
+✔ Zeer stabiel en voorspelbaar netwerk
+✔ Hoge bandbreedte mogelijk
+✔ Geen internetpad
+✖ Duur
+✖ Alleen nuttig bij zware productie-data
+
+Conclusie (belangrijk)
+
+Er is gekozen voor VpnGw1 omdat Contoso enkel beheer- en synchronisatieverkeer over de tunnel stuurt. De bandbreedte en latency van VPN zijn ruim voldoende en veel goedkoper dan ExpressRoute, waardoor een dedicated circuit geen meerwaarde heeft in deze fase.
+
+Op het diagram staat toch ExpressRoute getekend omdat de architectuur future-ready is: de hub-spoke setup en gateway subnet zijn al voorbereid zodat ExpressRoute later eenvoudig kan worden toegevoegd als SAP of andere workloads naar Azure verhuizen of als er grote datastromen bijkomen.
 ## wat je inlevert
 
 ```
