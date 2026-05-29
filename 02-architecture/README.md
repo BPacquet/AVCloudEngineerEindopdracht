@@ -168,6 +168,7 @@ De Contoso-applicatie wordt gemigreerd naar de volgende Azure PaaS-diensten:
 
 
 ### verwacht diagram (Application LZ)
+<img width="2269" height="1741" alt="application-landing-zone-final drawio" src="https://github.com/user-attachments/assets/f0038d2e-6b2f-4788-8625-71c020103a3f" />
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
