@@ -21,6 +21,7 @@ Ontwerp de volledige Azure-architectuur voor de gemigreerde Contoso-applicatie. 
 Een **Platform Landing Zone** is de funderende infrastructuur die alle workloads ondersteunt. Ze bestaat uit gedeelde services (hub networking, identity, monitoring) en de governance-structuur die consistentie afdwingt over alle subscriptions.
 
 ### structuur
+<img width="2184" height="2268" alt="image" src="https://github.com/user-attachments/assets/f6cfedbe-4b0c-40e0-857a-bc080282228f" />
 
 Tenant Root Group
 └── Contoso Manufacturing (MG)
@@ -31,32 +32,25 @@ Tenant Root Group
             └── Contoso-NonProd (Subscription)
 ```
 Tenant Root Group
-| Veld     | Waarde                                                |
-| -------- | ----------------------------------------------------- |
-| Naam     | Tenant Root Group                                     |
-| Tenant   | contoso.onmicrosoft.com                               |
-| Doel     | Bovenste knooppunt van de management group-hiërarchie |
-| Policies | Geen policies op dit niveau                           |
+Wat zit hierin?
+De volledige Entra ID / Azure AD tenant
+Alle anagement groups en subscriptions hangen hieronder
+De globale policies en governance regels ( bijvoorbeeld enkel recources toelaten in specifieke regio's, verplichte tagging, naming conventions, beperken van publieke IP en verplichten van private endpoints) 
 
-### te documenteren per laag
-LAAG1
-Contoso Manufacturing MG
-| Veld     | Waarde                                                |
-| -------- | ----------------------------------------------------- |
-| Naam     | Contoso Manufacturing                                 |
-| Doel     | Organisatiebrede governance voor alle Azure-resources |
-| Policies | Azure Security Benchmark                              |
-|          | Verplichte tags: env · owner · costcenter             |
-|          | Allowed regions: West Europe · North Europe           |
+Management Group 
+Wat zit hierin?
+Logische structuur boven de subscriptions
+Het opsplitsen in:
+Platform & Landing zones.
 
-Platform MG
-| Veld     | Waarde                                     |
-| -------- | ------------------------------------------ |
-| Naam     | Platform                                   |
-| Doel     | Governance voor gedeelde platform-services |
-| Policies | Diagnostics verplicht naar Log Analytics   |
-|          | RBAC baseline (Owner alleen via PIM)       |
-|          | Key Vault soft-delete verplicht            |
+Met centraal beheerde policies en rolgebaseerde toegangsrechten (RBAC) kunnen beveilingingsregels en toegangsbeheer efficiënt worden toegepast over meerdere subscriptions tegelijk. Hierdoor onstaat een consistente en veilige beheerstructuur binnen de omgeving.
+Daarnaast wordt een duidelijke scheiding aangebracht tussen het platform en de workloads:
+Platform doet het beheer van netwerken, security, identity, monitoring en gedeelde services.
+Workloads of applicaties: ontwikkeling, deployment en beheer van applicaties en bedrijfsomgevingen. 
+
+Door die scheiding kan het platformteam focussen op een stabiele en veilige basis, terwijl applicatieteams flexibel kunnen ontwikkelen en beheren zonder elkaar in de weg te zitten.
+
+
 
 Landing Zones MG
 | Veld     | Waarde                                        |
