@@ -50,6 +50,19 @@ Workloads of applicaties: ontwikkeling, deployment en beheer van applicaties en 
 
 Door die scheiding kan het platformteam focussen op een stabiele en veilige basis, terwijl applicatieteams flexibel kunnen ontwikkelen en beheren zonder elkaar in de weg te zitten.
 
+Platform layer (gedeelde services)
+Dit is de techtnische fundering waarop alles draait.
+
+Hub VNet / Conectivity 
+Wat zit hierin?
+Heb VNet
+Azure Firewall
+VPN Gateway / ExpressRoute (Optioneel)
+Azure Bastion
+Private DNS
+
+Alle traffic loopt via één gecontroleerd punt daardoor is er een betere security en logging.
+ Management
 
 
 Landing Zones MG
