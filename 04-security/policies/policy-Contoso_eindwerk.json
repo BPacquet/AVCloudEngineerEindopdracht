@@ -1,0 +1,495 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-09-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "displayName": "Contoso Manufacturing — Azure Policy Framework",
+    "description": "Complete policy framework for the Contoso Manufacturing Azure Landing Zone. Contains all tag policies, security baseline policies, initiatives and assignment metadata. NIS2-aligned. Version 1.0 | Mei 2026.",
+    "owner": "team-cloud@contoso.be",
+    "version": "1.0.0",
+    "nis2Relevant": true,
+    "rolloutMode": "Start in Audit (DoNotEnforce), switch to Deny (Default) after 2-week remediation window."
+  },
+
+  "policyDefinitions": [
+
+    {
+      "name": "policy-tag-environment",
+      "displayName": "Require tag 'Environment' on all resources",
+      "description": "Enforces the presence of the 'Environment' tag with an allowed value (prd, tst, dev). Resources without this tag or with an invalid value are denied.",
+      "metadata": { "category": "Tags", "version": "1.0.0", "nis2Article": "21(2)(a)" },
+      "mode": "All",
+      "parameters": {
+        "allowedValues": {
+          "type": "Array",
+          "defaultValue": ["prd", "tst", "dev"],
+          "metadata": { "displayName": "Allowed values for Environment tag" }
+        }
+      },
+      "policyRule": {
+        "if": {
+          "anyOf": [
+            { "field": "tags['Environment']", "exists": "false" },
+            { "field": "tags['Environment']", "notIn": "[parameters('allowedValues')]" }
+          ]
+        },
+        "then": { "effect": "deny" }
+      }
+    },
+
+    {
+      "name": "policy-tag-application",
+      "displayName": "Require tag 'Application' on all resources",
+      "description": "Enforces the presence of the 'Application' tag on all resources. Resources without this tag are denied.",
+      "metadata": { "category": "Tags", "version": "1.0.0" },
+      "mode": "All",
+      "parameters": {},
+      "policyRule": {
+        "if": { "field": "tags['Application']", "exists": "false" },
+        "then": { "effect": "deny" }
+      }
+    },
+
+    {
+      "name": "policy-tag-owner",
+      "displayName": "Require tag 'Owner' on all resources",
+      "description": "Enforces the presence of the 'Owner' tag. Value must be a valid e-mailadres in the @contoso.be domain.",
+      "metadata": { "category": "Tags", "version": "1.0.0" },
+      "mode": "All",
+      "parameters": {
+        "allowedDomain": {
+          "type": "String",
+          "defaultValue": "@contoso.be",
+          "metadata": { "displayName": "Allowed e-mail domain for Owner tag" }
+        }
+      },
+      "policyRule": {
+        "if": {
+          "anyOf": [
+            { "field": "tags['Owner']", "exists": "false" },
+            { "field": "tags['Owner']", "notContains": "[parameters('allowedDomain')]" }
+          ]
+        },
+        "then": { "effect": "deny" }
+      }
+    },
+
+    {
+      "name": "policy-tag-costcenter",
+      "displayName": "Require tag 'CostCenter' on all resources",
+      "description": "Enforces the presence of the 'CostCenter' tag. Value must match the pattern CC-* (e.g. CC-IT-001).",
+      "metadata": { "category": "Tags", "version": "1.0.0" },
+      "mode": "All",
+      "parameters": {},
+      "policyRule": {
+        "if": {
+          "anyOf": [
+            { "field": "tags['CostCenter']", "exists": "false" },
+            { "field": "tags['CostCenter']", "notLike": "CC-*" }
+          ]
+        },
+        "then": { "effect": "deny" }
+      }
+    },
+
+    {
+      "name": "policy-tag-dataclassification",
+      "displayName": "Require tag 'DataClassification' on all resources",
+      "description": "Enforces the 'DataClassification' tag with an allowed value. Aligned with the Contoso four-level classification scheme.",
+      "metadata": { "category": "Tags", "version": "1.0.0", "nis2Article": "21(2)(a)" },
+      "mode": "All",
+      "parameters": {
+        "allowedValues": {
+          "type": "Array",
+          "defaultValue": ["public", "internal", "confidential", "strictly-confidential"],
+          "metadata": { "displayName": "Allowed DataClassification values" }
+        }
+      },
+      "policyRule": {
+        "if": {
+          "anyOf": [
+            { "field": "tags['DataClassification']", "exists": "false" },
+            { "field": "tags['DataClassification']", "notIn": "[parameters('allowedValues')]" }
+          ]
+        },
+        "then": { "effect": "deny" }
+      }
+    },
+
+    {
+      "name": "policy-allowed-locations",
+      "displayName": "Restrict resource deployment to allowed Azure regions",
+      "description": "Denies deployment outside of West Europe (primary) and North Europe (DR). Enforces EU data residency for GDPR and NIS2. Global resources (Front Door, CDN) are excluded.",
+      "metadata": { "category": "General", "version": "1.0.0", "nis2Article": "21(2)(a) + GDPR data residency" },
+      "mode": "All",
+      "parameters": {
+        "allowedLocations": {
+          "type": "Array",
+          "defaultValue": ["westeurope", "northeurope", "global"],
+          "metadata": { "displayName": "Allowed Azure regions", "strongType": "location" }
+        },
+        "effect": {
+          "type": "String",
+          "defaultValue": "Deny",
+          "allowedValues": ["Deny", "Audit", "Disabled"],
+          "metadata": { "displayName": "Effect" }
+        }
+      },
+      "policyRule": {
+        "if": {
+          "allOf": [
+            { "field": "location", "notIn": "[parameters('allowedLocations')]" },
+            { "field": "location", "notEquals": "global" },
+            { "field": "type", "notEquals": "Microsoft.AzureActiveDirectory/b2cDirectories" },
+            {
+              "field": "type",
+              "notIn": [
+                "Microsoft.Network/frontDoors",
+                "Microsoft.Network/frontdoorWebApplicationFirewallPolicies",
+                "Microsoft.Cdn/profiles"
+              ]
+            }
+          ]
+        },
+        "then": { "effect": "[parameters('effect')]" }
+      }
+    },
+
+    {
+      "name": "policy-appservice-https-only",
+      "displayName": "Require HTTPS-only on App Service",
+      "description": "Enforces httpsOnly = true on all Azure App Service web apps and function apps. Prevents credentials and session tokens from being transmitted in plain text.",
+      "metadata": { "category": "App Service", "version": "1.0.0", "nis2Article": "21(2)(h)" },
+      "mode": "All",
+      "parameters": {
+        "effect": {
+          "type": "String",
+          "defaultValue": "Deny",
+          "allowedValues": ["Deny", "Audit", "Disabled"],
+          "metadata": { "displayName": "Effect" }
+        }
+      },
+      "policyRule": {
+        "if": {
+          "allOf": [
+            { "field": "type", "equals": "Microsoft.Web/sites" },
+            {
+              "anyOf": [
+                { "field": "Microsoft.Web/sites/httpsOnly", "exists": "false" },
+                { "field": "Microsoft.Web/sites/httpsOnly", "notEquals": "true" }
+              ]
+            }
+          ]
+        },
+        "then": { "effect": "[parameters('effect')]" }
+      }
+    },
+
+    {
+      "name": "policy-sql-disable-public-access",
+      "displayName": "Disable public network access on SQL Managed Instance",
+      "description": "Enforces publicDataEndpointEnabled = false on all SQL Managed Instances. Combined with Private Endpoints in snet-spoke-data, ensures SQL MI is only reachable from within the VNet.",
+      "metadata": { "category": "SQL", "version": "1.0.0", "nis2Article": "21(2)(i)" },
+      "mode": "All",
+      "parameters": {
+        "effect": {
+          "type": "String",
+          "defaultValue": "Deny",
+          "allowedValues": ["Deny", "Audit", "Disabled"],
+          "metadata": { "displayName": "Effect" }
+        }
+      },
+      "policyRule": {
+        "if": {
+          "allOf": [
+            { "field": "type", "equals": "Microsoft.Sql/managedInstances" },
+            {
+              "anyOf": [
+                { "field": "Microsoft.Sql/managedInstances/publicDataEndpointEnabled", "exists": "false" },
+                { "field": "Microsoft.Sql/managedInstances/publicDataEndpointEnabled", "equals": "true" }
+              ]
+            }
+          ]
+        },
+        "then": { "effect": "[parameters('effect')]" }
+      }
+    },
+
+    {
+      "name": "policy-storage-tls-minimum",
+      "displayName": "Require minimum TLS 1.2 on Storage Accounts",
+      "description": "Enforces minimumTlsVersion = TLS1_2 on all Azure Storage Accounts. TLS 1.0 and 1.1 are deprecated and vulnerable to POODLE and BEAST attacks.",
+      "metadata": { "category": "Storage", "version": "1.0.0", "nis2Article": "21(2)(h)" },
+      "mode": "All",
+      "parameters": {
+        "effect": {
+          "type": "String",
+          "defaultValue": "Deny",
+          "allowedValues": ["Deny", "Audit", "Disabled"],
+          "metadata": { "displayName": "Effect" }
+        }
+      },
+      "policyRule": {
+        "if": {
+          "allOf": [
+            { "field": "type", "equals": "Microsoft.Storage/storageAccounts" },
+            {
+              "anyOf": [
+                { "field": "Microsoft.Storage/storageAccounts/minimumTlsVersion", "exists": "false" },
+                { "field": "Microsoft.Storage/storageAccounts/minimumTlsVersion", "notEquals": "TLS1_2" }
+              ]
+            }
+          ]
+        },
+        "then": { "effect": "[parameters('effect')]" }
+      }
+    },
+
+    {
+      "name": "policy-storage-deny-public-blob",
+      "displayName": "Deny public blob access on Storage Accounts",
+      "description": "Enforces allowBlobPublicAccess = false on all Azure Storage Accounts. All storage is accessed via Private Endpoints and Managed Identity — anonymous public access is never required.",
+      "metadata": { "category": "Storage", "version": "1.0.0", "nis2Article": "21(2)(i)" },
+      "mode": "All",
+      "parameters": {
+        "effect": {
+          "type": "String",
+          "defaultValue": "Deny",
+          "allowedValues": ["Deny", "Audit", "Disabled"],
+          "metadata": { "displayName": "Effect" }
+        }
+      },
+      "policyRule": {
+        "if": {
+          "allOf": [
+            { "field": "type", "equals": "Microsoft.Storage/storageAccounts" },
+            {
+              "anyOf": [
+                { "field": "Microsoft.Storage/storageAccounts/allowBlobPublicAccess", "exists": "false" },
+                { "field": "Microsoft.Storage/storageAccounts/allowBlobPublicAccess", "equals": "true" }
+              ]
+            }
+          ]
+        },
+        "then": { "effect": "[parameters('effect')]" }
+      }
+    },
+
+    {
+      "name": "policy-keyvault-purge-protection",
+      "displayName": "Require purge protection on Azure Key Vault",
+      "description": "Enforces enablePurgeProtection = true and enableSoftDelete = true with a minimum 90-day retention. Protects against accidental or malicious permanent deletion of cryptographic material.",
+      "metadata": { "category": "Key Vault", "version": "1.0.0", "nis2Article": "21(2)(h)" },
+      "mode": "All",
+      "parameters": {
+        "effect": {
+          "type": "String",
+          "defaultValue": "Deny",
+          "allowedValues": ["Deny", "Audit", "Disabled"],
+          "metadata": { "displayName": "Effect" }
+        },
+        "minimumSoftDeleteRetentionDays": {
+          "type": "Integer",
+          "defaultValue": 90,
+          "metadata": { "displayName": "Minimum soft-delete retention in days" }
+        }
+      },
+      "policyRule": {
+        "if": {
+          "allOf": [
+            { "field": "type", "equals": "Microsoft.KeyVault/vaults" },
+            {
+              "anyOf": [
+                { "field": "Microsoft.KeyVault/vaults/enablePurgeProtection", "exists": "false" },
+                { "field": "Microsoft.KeyVault/vaults/enablePurgeProtection", "notEquals": "true" },
+                { "field": "Microsoft.KeyVault/vaults/enableSoftDelete", "notEquals": "true" },
+                { "field": "Microsoft.KeyVault/vaults/softDeleteRetentionInDays", "less": "[parameters('minimumSoftDeleteRetentionDays')]" }
+              ]
+            }
+          ]
+        },
+        "then": { "effect": "[parameters('effect')]" }
+      }
+    },
+
+    {
+      "name": "policy-deny-public-ip",
+      "displayName": "Deny public IP addresses on workload resources",
+      "description": "Denies creation of Public IP addresses in Corp MG subscriptions (Prod and NonProd). All workloads are accessed via Application Gateway, Bastion or VPN Gateway. Hub resource groups (firewall, gateway) are excluded.",
+      "metadata": { "category": "Network", "version": "1.0.0", "nis2Article": "21(2)(i)" },
+      "mode": "All",
+      "parameters": {
+        "effect": {
+          "type": "String",
+          "defaultValue": "Deny",
+          "allowedValues": ["Deny", "Audit", "Disabled"],
+          "metadata": { "displayName": "Effect" }
+        },
+        "excludedResourceGroups": {
+          "type": "Array",
+          "defaultValue": ["rg-hub-network", "rg-firewall", "rg-gateway"],
+          "metadata": { "displayName": "Excluded resource groups (hub/firewall)" }
+        }
+      },
+      "policyRule": {
+        "if": {
+          "allOf": [
+            { "field": "type", "equals": "Microsoft.Network/publicIPAddresses" },
+            { "field": "resourceGroup", "notIn": "[parameters('excludedResourceGroups')]" }
+          ]
+        },
+        "then": { "effect": "[parameters('effect')]" }
+      }
+    }
+
+  ],
+
+  "initiatives": [
+
+    {
+      "name": "initiative-tagging",
+      "displayName": "Contoso Manufacturing — Required Tagging Initiative",
+      "description": "Bundles all 5 mandatory tagging policies. Assigned at Contoso Manufacturing Management Group level — applies to all subscriptions.",
+      "metadata": { "category": "Tags", "version": "1.0.0" },
+      "parameters": {
+        "environmentAllowedValues": {
+          "type": "Array",
+          "defaultValue": ["prd", "tst", "dev"],
+          "metadata": { "displayName": "Allowed values for Environment tag" }
+        },
+        "ownerAllowedDomain": {
+          "type": "String",
+          "defaultValue": "@contoso.be",
+          "metadata": { "displayName": "Allowed e-mail domain for Owner tag" }
+        },
+        "dataClassificationAllowedValues": {
+          "type": "Array",
+          "defaultValue": ["public", "internal", "confidential", "strictly-confidential"],
+          "metadata": { "displayName": "Allowed values for DataClassification tag" }
+        }
+      },
+      "policyDefinitions": [
+        {
+          "policyDefinitionReferenceId": "RequireTagEnvironment",
+          "policyDefinitionName": "policy-tag-environment",
+          "parameters": { "allowedValues": { "value": "[parameters('environmentAllowedValues')]" } }
+        },
+        {
+          "policyDefinitionReferenceId": "RequireTagApplication",
+          "policyDefinitionName": "policy-tag-application",
+          "parameters": {}
+        },
+        {
+          "policyDefinitionReferenceId": "RequireTagOwner",
+          "policyDefinitionName": "policy-tag-owner",
+          "parameters": { "allowedDomain": { "value": "[parameters('ownerAllowedDomain')]" } }
+        },
+        {
+          "policyDefinitionReferenceId": "RequireTagCostCenter",
+          "policyDefinitionName": "policy-tag-costcenter",
+          "parameters": {}
+        },
+        {
+          "policyDefinitionReferenceId": "RequireTagDataClassification",
+          "policyDefinitionName": "policy-tag-dataclassification",
+          "parameters": { "allowedValues": { "value": "[parameters('dataClassificationAllowedValues')]" } }
+        }
+      ]
+    },
+
+    {
+      "name": "initiative-security-baseline",
+      "displayName": "Contoso Manufacturing — Security Baseline Initiative",
+      "description": "Bundles all security policies for Corp Management Group (Prod and NonProd subscriptions). Use the global 'effect' parameter to switch between Audit and Deny during rollout.",
+      "metadata": { "category": "Security", "version": "1.0.0", "nis2Relevant": true },
+      "parameters": {
+        "effect": {
+          "type": "String",
+          "defaultValue": "Deny",
+          "allowedValues": ["Deny", "Audit", "Disabled"],
+          "metadata": {
+            "displayName": "Global effect override",
+            "description": "Set to Audit during initial rollout, switch to Deny after remediation."
+          }
+        }
+      },
+      "policyDefinitions": [
+        {
+          "policyDefinitionReferenceId": "RequireHttpsAppService",
+          "policyDefinitionName": "policy-appservice-https-only",
+          "parameters": { "effect": { "value": "[parameters('effect')]" } }
+        },
+        {
+          "policyDefinitionReferenceId": "DisableSqlPublicAccess",
+          "policyDefinitionName": "policy-sql-disable-public-access",
+          "parameters": { "effect": { "value": "[parameters('effect')]" } }
+        },
+        {
+          "policyDefinitionReferenceId": "RequireStorageTls12",
+          "policyDefinitionName": "policy-storage-tls-minimum",
+          "parameters": { "effect": { "value": "[parameters('effect')]" } }
+        },
+        {
+          "policyDefinitionReferenceId": "DenyStoragePublicBlob",
+          "policyDefinitionName": "policy-storage-deny-public-blob",
+          "parameters": { "effect": { "value": "[parameters('effect')]" } }
+        },
+        {
+          "policyDefinitionReferenceId": "RequireKeyVaultPurgeProtection",
+          "policyDefinitionName": "policy-keyvault-purge-protection",
+          "parameters": { "effect": { "value": "[parameters('effect')]" } }
+        },
+        {
+          "policyDefinitionReferenceId": "DenyPublicIpCorpResources",
+          "policyDefinitionName": "policy-deny-public-ip",
+          "parameters": { "effect": { "value": "[parameters('effect')]" } }
+        }
+      ]
+    }
+
+  ],
+
+  "assignments": [
+    {
+      "name": "assign-tagging-contoso-mg",
+      "displayName": "Enforce required tags — Contoso Manufacturing MG",
+      "description": "Assigns the tagging initiative to the root Management Group. Applies to all subscriptions.",
+      "initiativeName": "initiative-tagging",
+      "scope": "/providers/Microsoft.Management/managementGroups/contoso-manufacturing",
+      "enforcementMode": "DoNotEnforce",
+      "note": "Switch to Default (Deny) after 2-week remediation window."
+    },
+    {
+      "name": "assign-allowed-locations-contoso-mg",
+      "displayName": "Restrict deployments to West/North Europe — Contoso Manufacturing MG",
+      "description": "Denies resource creation outside West Europe and North Europe. Enforces GDPR data residency.",
+      "policyDefinitionName": "policy-allowed-locations",
+      "scope": "/providers/Microsoft.Management/managementGroups/contoso-manufacturing",
+      "enforcementMode": "Default",
+      "parameters": {
+        "allowedLocations": { "value": ["westeurope", "northeurope", "global"] },
+        "effect": { "value": "Deny" }
+      }
+    },
+    {
+      "name": "assign-security-baseline-corp-mg",
+      "displayName": "Enforce security baseline — Corp MG",
+      "description": "Assigns the security baseline initiative to the Corp Management Group (Prod and NonProd subscriptions).",
+      "initiativeName": "initiative-security-baseline",
+      "scope": "/providers/Microsoft.Management/managementGroups/corp",
+      "enforcementMode": "DoNotEnforce",
+      "parameters": {
+        "effect": { "value": "Audit" }
+      },
+      "note": "Switch effect to Deny and enforcementMode to Default after remediation."
+    },
+    {
+      "name": "assign-azure-security-benchmark",
+      "displayName": "Azure Security Benchmark — Contoso Manufacturing MG",
+      "description": "Assigns the built-in Azure Security Benchmark initiative for CSPM and Defender for Cloud Secure Score.",
+      "policySetDefinitionId": "/providers/Microsoft.Authorization/policySetDefinitions/1f3afdf9-d0c9-4c3d-847f-89da613e70a8",
+      "scope": "/providers/Microsoft.Management/managementGroups/contoso-manufacturing",
+      "enforcementMode": "DoNotEnforce",
+      "note": "Audit-only. Used for Secure Score and NIS2 compliance dashboard in Defender for Cloud."
+    }
+  ]
+}
