@@ -1,4 +1,4 @@
-<img width="2269" height="1741" alt="application-landing-zone-final" src="https://github.com/user-attachments/assets/702d3c63-e564-4694-9549-319a3caa2db6" />
+
 # 02 — architectuurdiagrammen
 
 > **Deliverable**: Platform Landing Zone + Application Landing Zone diagram  
@@ -170,7 +170,7 @@ De Contoso-applicatie wordt gemigreerd naar de volgende Azure PaaS-diensten:
 
 ### verwacht diagram (Application LZ)
 
-
+<img width="2269" height="1741" alt="application-landing-zone-final" src="https://github.com/user-attachments/assets/702d3c63-e564-4694-9549-319a3caa2db6" />
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
