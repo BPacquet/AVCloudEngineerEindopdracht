@@ -160,11 +160,12 @@ Gebruik de officiële Azure-architectuuricoontjes. Neem minimaal op:
 De **Application Landing Zone** (ook "workload spoke" genoemd) is de subscription waar de eigenlijke applicatie leeft. Ze is verbonden met de platform landing zone via VNet peering naar de hub.
 
 ### doelarchitectuur (PaaS — Fase 2 Refactor)
-<img width="2269" height="1741" alt="application-landing-zone-final" src="https://github.com/user-attachments/assets/cfa3c6e8-e461-4eeb-88e2-306050a5a8de" />
+<img width="2040" height="2120" alt="onprem-naar-azure-paas" src="https://github.com/user-attachments/assets/a8f78eca-368b-47ff-bd21-dc8385be14bb" />
+
 
 De Contoso-applicatie wordt gemigreerd naar de volgende Azure PaaS-diensten:
 
-<img width="2040" height="2120" alt="onprem-naar-azure-paas" src="https://github.com/user-attachments/assets/7899dc88-c7d1-4f67-879f-2434b4e8ca4c" />
+
 
 ### verwacht diagram (Application LZ)
 
