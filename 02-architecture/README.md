@@ -165,7 +165,7 @@ De **Application Landing Zone** (ook "workload spoke" genoemd) is de subscriptio
 
 
 De Contoso-applicatie wordt gemigreerd naar de volgende Azure PaaS-diensten:
-![Azure PaaS Architectuur](application-naar-azure-paas.jpg)
+02-architecture/onprem-naar-azure-paas.jpg
 
 
 ### verwacht diagram (Application LZ)
