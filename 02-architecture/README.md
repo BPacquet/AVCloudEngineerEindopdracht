@@ -160,20 +160,11 @@ Gebruik de officiële Azure-architectuuricoontjes. Neem minimaal op:
 De **Application Landing Zone** (ook "workload spoke" genoemd) is de subscription waar de eigenlijke applicatie leeft. Ze is verbonden met de platform landing zone via VNet peering naar de hub.
 
 ### doelarchitectuur (PaaS — Fase 2 Refactor)
+<img width="2269" height="1741" alt="application-landing-zone-final" src="https://github.com/user-attachments/assets/cfa3c6e8-e461-4eeb-88e2-306050a5a8de" />
 
 De Contoso-applicatie wordt gemigreerd naar de volgende Azure PaaS-diensten:
 
-| On-premises | Azure PaaS equivalent | Reden |
-|---|---|---|
-| IIS + ASP.NET WebForms | **Azure App Service** (Windows) | Managed hosting, auto-scale |
-| .NET Windows Services | **Azure WebJobs** of **Azure Functions** | Serverless/managed background jobs |
-| SQL Server Always On | **Azure SQL Database** (Business Critical) | Managed, HA ingebouwd, geo-replication |
-| F5 BIG-IP | **Application Gateway + WAF v2** | Layer 7 load balancing, WAF |
-| Active Directory auth | **Microsoft Entra ID + App registration** | Modern auth (OAuth2/OIDC) |
-| NAS (UNC shares) | **Azure Files** of **Azure Blob Storage** | Managed file storage |
-| SCOM monitoring | **Azure Monitor + Application Insights** | Cloud-native observability |
-| Exchange SMTP | **Azure Communication Services** of **SendGrid** | Managed mail delivery |
-| Veeam Backup | **Azure Backup + SQL LTR** | Integrated cloud backup |
+<img width="2040" height="2120" alt="onprem-naar-azure-paas" src="https://github.com/user-attachments/assets/7899dc88-c7d1-4f67-879f-2434b4e8ca4c" />
 
 ### verwacht diagram (Application LZ)
 
