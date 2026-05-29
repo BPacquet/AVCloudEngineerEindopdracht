@@ -62,7 +62,82 @@ Azure Bastion
 Private DNS
 
 Alle traffic loopt via één gecontroleerd punt daardoor is er een betere security en logging.
- Management
+
+Management
+Wat zit hierin?
+Azure moitor/ log analytics
+backup services
+automation accounts
+update management
+
+Door centrale monitoring krijg je een duidelijk beeld van wat er in het netwerk gebeurt. Problemen of afwijkingen worden sneller zichtbaar, waardoor je gerichter kan reageren.
+Met geautomatiseerd beheer worden veel taken automatisch uitgevoerd, wat tijd bespaart en menselijke fouten vermindert.
+Samen zorgt dit voor een snelle detectie van problemen en een vlotteren werking van het volledig systeem.
+
+Idenitity
+Wat zit hierin?
+Entra ID (azure AD)
+AD domain services/ Domain controllers
+conditionl access policies
+
+een centraal Identiry en access management (IAM) zorgt ervoor dat alle gebruikers en hun toegangsrechten op één plaats beheerd worden.
+Met beveiligde login, zoals MFA en het zero Trust-principe, wordt er extra gecontroleerd wie toegang krijgt tot systemen en data. alleen wie echt geverifieerd is kan verder.
+
+
+In een hybride setup wordt een Domain Controller replica in Azure gebruikt.  
+Deze ondersteunt klassieke workloads (domain-joined VM’s, legacy applicaties) en zorgt voor integratie tussen on-premises Active Directory en Entra ID.
+
+Landing zones (workloads)
+Opgesplitst in:
+Production
+Non-Production (Dev/test)
+
+Wat zit hierin?
+Subscriptions per omgeving
+Applicaties, databases, services.
+
+Door de omgevingen van elkaar te isoleren, blijven ze volledig gescheiden en beïnvloeden ze elkaar niet.
+Zo kan een fout of een wijziging in Dev geen impact hebben op de productieomgeving.
+Ook maakt het met deze aanpak mogelijk om de kosten per omgeving op te volgen en beter te beheren.
+
+Spoke VNets
+Wat zit hierin?
+Virtuele netwerken per workload.
+Subnets voor verschillende componenten
+    apps
+    databases
+    integraties
+
+Netwerkisolatie per applicatie of omgeving zorgt ervoor dat systemen van elkaar gescheiden blijven en niet zomaar met elkaar kunnen communiceren. Dat beperkt de impact van fouten of beveiligingsincidenten.
+
+Via peering blijven de verschillende netwerken toch verbonden met de centrale hub, zo is er wanneer nodig een gecontroleerde communicatie.
+Al het verkeer loopt daarbij langs een firawall, waar het wordt gevilterd en gecontroleerd op veiligheid en toegestane toegang.
+
+Private Entpoints
+Wat zit hierin?
+Private verbindingen naar de Paas services.
+    SQL
+    Storage
+    Key Vault
+
+Door geen publieke toegang toe te staan, worden systemen niet rechstreeks bereikbaar vanaf het internet. Dit verkleint meteen het risico op ongewenst toegang.
+Alle verkeer blijft vinen het Azure-netwerk, waardoor het beter gecontroleerd en beveiligd kan worden via interne netwerkregels.
+Het doe is een Zero Trust Netwerkbenadering, waarbij standaard niemand vertrouwd wordt en elke toegang expliciet gecontroleerd wordt.
+
+Application gateway + Waf
+Wat zit hierin?
+Layer 7 load balancer
+web application firewall (Waf)
+SSL termination
+
+een application gateway met SSL termination helpt om webverkeer veilig en efficiënt te verwerken. Het beschermt tegen veelvoorkomende aanvallen zoals SQL injection, XSS en andere webgebasseerde attacks door inkomend verkeer eerst te inspecteren en te filteren voordat het de backend bereikt. 
+
+Azure front door
+Wat zit hierin?
+Globale entry point
+CDN + Caching
+Load balancing over regio's
+DDoS bescherming.
 
 
 Landing Zones MG
