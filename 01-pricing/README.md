@@ -113,7 +113,7 @@ Alle bedragen zijn exclusief BTW. Blauw gemarkeerde cellen in de Excel-bijlagen 
 
 **Bijlagen:**
 - `pricing-estimate.xlsx` — maandelijkse kosten + TCO-vergelijking
-- `instance-inventaris-uitgebreid.xlsx` — resource inventaris + AHB + RI
+- `inventaris_resources.xlsx` — resource inventaris
 
 ---
 
