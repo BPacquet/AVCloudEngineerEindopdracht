@@ -346,48 +346,75 @@ DC01 Gent                            DNS Private Resolver
 
 Documenteer de **minimaal vereiste Azure Firewall regels**:
 
-### Application Rules (FQDN-gebaseerd)
+## RC-NAT-Inbound — DNAT regels
 
-| Naam | Bron | Protocol | Target FQDN | Actie |
-|---|---|---|---|---|
-| Allow-WindowsUpdate | `10.20.0.0/16` | HTTPS | `*.update.microsoft.com` | Allow |
-| Allow-AzureMonitor | `10.20.0.0/16` | HTTPS | `*.monitor.azure.com` | Allow |
-| Allow-SAP-API | `10.20.0.0/16` | HTTPS | `sap-api.contoso.local` | Allow |
+**Type:** DNAT | **Doel:** inkomend publiek verkeer omzetten naar interne resources
 
-### Network Rules (IP-gebaseerd)
+> ℹ️ De Application Gateway (`agw-contoso-prd-001`) heeft een **eigen publiek IP** (`pip-agw-prd`).
+> Extern HTTPS-verkeer van gebruikers gaat direct naar de AGW — niet via het Firewall-IP.
+> DNAT is hier beschikbaar als alternatief routing-pad.
 
-| Naam | Bron | Protocol | Doel | Poort | Actie |
-|---|---|---|---|---|---|
-| Allow-Onprem-to-Azure | `10.10.0.0/16` | TCP | `10.20.0.0/16` | 443,1433 | Allow |
-| Allow-Azure-to-Onprem-SMTP | `10.20.0.0/16` | TCP | `10.10.X.X` (Exchange) | 25 | Allow |
-
-Contoso applicatie
-| Naam                | Bron         | Protocol             | Target FQDN                                                                 | Actie |
-| ------------------- | ------------ | -------------------- | --------------------------------------------------------------------------- | ----- |
-| Allow-WindowsUpdate | 10.20.0.0/16 | HTTPS:443            | *.update.microsoft.com, *.windowsupdate.com                                 | Allow |
-| Allow-AzureMonitor  | 10.20.0.0/16 | HTTPS:443            | *.monitor.azure.com, *.ods.opinsights.azure.com, *.oms.opinsights.azure.com | Allow |
-| Allow-AzureAD       | 10.20.0.0/16 | HTTPS:443            | login.microsoftonline.com, *.microsoftonline.com, graph.microsoft.com       | Allow |
-| Allow-SAP-API       | 10.20.0.0/16 | HTTPS:443, HTTP:8080 | sap-api.contoso.local, sap.contoso.be                                       | Allow |
-| Allow-CommServices  | 10.20.0.0/16 | HTTPS:443            | *.communication.azure.com                                                   | Allow |
-| Allow-KV-CRL        | 10.20.0.0/16 | HTTP:80, HTTPS:443   | crl.microsoft.com, ocsp.msocsp.com                                          | Allow |
-| Allow-EntraConnect  | 10.40.0.0/24 | HTTPS:443            | *.msappproxy.net, *.servicebus.windows.net                                  | Allow |
-| Allow-DevOps-Agents | 10.20.4.0/27 | HTTPS:443            | *.dev.azure.com, *.visualstudio.com, *.vsblob.visualstudio.com              | Allow |
-| Deny-All-App        | *            | *                    | *                                                                           | Deny  |
-
+| Prio | Naam | Protocol | Bron | Doel | Poort | Actie |
+|:---:|---|:---:|---|---|:---:|---|
+| 100 | `DNAT-HTTPS-to-AGW` | TCP | Internet (`*`) | pip-agw-prd | 443 | DNAT → 10.20.0.4 |
 
 ---
-| Naam                   | Bron           | Protocol | Doel            | Poort                 | Actie |
-| ---------------------- | -------------- | -------- | --------------- | --------------------- | ----- |
-| Allow-Onprem-to-AGW    | 192.168.0.0/16 | TCP      | 10.20.0.0/27    | 443                   | Allow |
-| Allow-Onprem-to-SQL    | 192.168.0.0/16 | TCP      | 10.20.4.4/32    | 1433                  | Allow |
-| Allow-Onprem-to-KV     | 192.168.0.0/16 | TCP      | 10.20.3.4/32    | 443                   | Allow |
-| Allow-Onprem-to-Mgmt   | 192.168.0.0/16 | TCP      | 10.20.4.0/27    | 22, 3389              | Allow |
-| Allow-Azure-to-SAP     | 10.20.0.0/16   | TCP      | 192.168.1.20/32 | 443, 8080, 3300       | Allow |
-| Allow-AD-Replication   | 10.40.0.0/24   | TCP/UDP  | 192.168.1.10/32 | 389, 636, 53, 88, 445 | Allow |
-| Allow-DC-RPC           | 10.40.0.0/24   | TCP      | 192.168.0.0/16  | 49152–65535           | Allow |
-| Allow-SqlMI-Management | 10.20.4.0/24   | TCP      | SqlManagement   | 80, 443, 12000        | Allow |
-| Allow-NTP              | 10.20.0.0/16   | UDP      | 40.119.6.228/32 | 123                   | Allow |
-| Deny-All-Net           | *              | *        | *               | *                     | Deny  |
+
+## RC-NET-HubSpoke — Network regels
+
+**Type:** Network | **Doel:** IP/poort-gebaseerde filtering voor VNet-naar-VNet en VPN-verkeer
+
+| Prio | Naam | Protocol | Bron | Doel | Poort | Actie | Toelichting |
+|:---:|---|:---:|---|---|:---:|:---:|---|
+| 100 | `NET-Allow-DNS-Spoke-to-Hub` | UDP | `10.10.0.0/16`, `10.20.0.0/16` | `10.0.3.4` | 53 | ✅ Allow | DNS-queries van Spoke-Prod en NonProd naar DNS Private Resolver |
+| 110 | `NET-Allow-DNS-OnPrem-to-Hub` | UDP | `192.168.0.0/16` | `10.0.3.4` | 53 | ✅ Allow | DNS Conditional Forwarder op DC01 stuurt via VPN naar Resolver |
+| 120 | `NET-Allow-SQL-Spoke-to-SQLI` | TCP | `10.10.1.0/24`, `10.10.2.0/27` | `10.10.4.0/24` | 1433 | ✅ Allow | App Service en Functions naar SQL MI via UDR door Firewall |
+| 130 | `NET-Allow-SQL-OnPrem` | TCP | `192.168.0.0/16` | `10.10.3.4` | 1433 | ✅ Allow | On-premises SAP ERP verbindt via VPN naar SQL MI Private Endpoint |
+| 140 | `NET-Allow-RDP-SSH-Bastion` | TCP | `10.0.2.0/27` | `10.10.0.0/16`, `10.40.0.0/24` | 22, 3389 | ✅ Allow | Azure Bastion naar VMs in Spoke en Identity subnet |
+| 150 | `NET-Allow-LDAP-DC-Replication` | TCP/UDP | `192.168.1.0/24` | `10.40.0.0/27` | 53, 88, 135, 389, 445, 464, 636, 3268 | ✅ Allow | AD DS replicatie on-prem DC01 → Azure vm-dc-01/02 |
+| 160 | `NET-Allow-NTP` | UDP | `10.40.0.0/27` | `168.63.129.16` | 123 | ✅ Allow | DC-replica VMs synchroniseren tijd via Azure NTP |
+| 170 | `NET-Allow-AMQP-ServiceBus` | TCP | `10.10.1.0/24`, `10.10.2.0/27` | `10.10.3.7` | 5671, 5672 | ✅ Allow | AMQP naar Service Bus Private Endpoint |
+| 180 | `NET-Allow-VPN-BGP` | TCP | `10.0.1.0/27` | `192.168.1-3.0/24` | 179 | ✅ Allow | BGP-peering VPN Gateway ↔ on-premises routers |
+| 190 | `NET-Allow-Spoke-to-Spoke-Restricted` | TCP | `10.20.0.0/16` | `10.10.0.0/16` | 443, 1433 | ✅ Allow | NonProd → Prod beperkt tot HTTPS en SQL (DevOps agents) |
+| 9999 | `NET-Deny-All` | `*` | `*` | `*` | `*` | 🚫 Deny | Default deny-all — maakt impliciete deny zichtbaar in logs |
+
+### AD DS replicatie — poorten tabel
+
+| Poort | Protocol | Dienst |
+|:---:|:---:|---|
+| 53 | TCP/UDP | DNS |
+| 88 | TCP/UDP | Kerberos authenticatie |
+| 135 | TCP | RPC Endpoint Mapper |
+| 389 | TCP/UDP | LDAP |
+| 445 | TCP | SMB (SYSVOL/NETLOGON replicatie) |
+| 464 | TCP/UDP | Kerberos wachtwoordwijziging |
+| 636 | TCP | LDAPS (versleuteld LDAP) |
+| 3268 | TCP | Global Catalog |
+
+---
+
+## RC-APP-Egress — Application regels
+
+**Type:** Application | **Doel:** FQDN-filtering voor uitgaand HTTPS-verkeer via TLS-inspectie
+
+> ⚠️ Application rules vereisen dat Azure Firewall als **DNS-proxy** is ingesteld.
+> FQDN-matching werkt op het SNI-veld na TLS-terminatie door Firewall Premium.
+> Stel in: Firewall Policy → DNS Settings → DNS Proxy = Enabled, DNS server = `10.0.3.4`.
+
+| Prio | Naam | Protocol | Bron | Doel (FQDN) | Poort | Actie |
+|:---:|---|:---:|---|---|:---:|:---:|
+| 100 | `APP-Allow-AzureUpdate` | HTTPS | `10.40.0.0/27` | `WindowsUpdate` *(service tag)* | 443 | ✅ Allow |
+| 110 | `APP-Allow-AzureMonitor` | HTTPS | `10.10.0.0/16`, `10.40.0.0/24` | `*.monitor.azure.com`, `*.applicationinsights.io`, `*.ods.opinsights.azure.com` | 443 | ✅ Allow |
+| 120 | `APP-Allow-AzureDefender` | HTTPS | `10.10.0.0/16`, `10.40.0.0/24` | `*.security.microsoft.com`, `*.blob.core.windows.net` | 443 | ✅ Allow |
+| 130 | `APP-Allow-AzureDevOps` | HTTPS | `10.10.5.0/27` | `*.dev.azure.com`, `*.vsassets.io`, `*.visualstudio.com` | 443 | ✅ Allow |
+| 140 | `APP-Allow-ContainerRegistry` | HTTPS | `10.10.5.0/27` | `*.azurecr.io`, `mcr.microsoft.com` | 443 | ✅ Allow |
+| 150 | `APP-Allow-PackageManagers` | HTTPS | `10.10.5.0/27` | `*.nuget.org`, `*.npmjs.com`, `pypi.org`, `github.com` | 443 | ✅ Allow |
+| 160 | `APP-Allow-EntraID` | HTTPS | `10.10.0.0/16`, `10.40.0.0/24` | `login.microsoftonline.com`, `login.microsoft.com`, `*.identity.azure.com` | 443 | ✅ Allow |
+| 170 | `APP-Allow-KeyVault-Mgmt` | HTTPS | `10.10.0.0/16`, `10.40.0.0/24` | `*.vault.azure.net` | 443 | ✅ Allow |
+| 180 | `APP-Allow-SAP-Integration` | HTTPS | `10.10.2.0/27` | `sap.contoso.local` | 443, 8080 | ✅ Allow |
+| 190 | `APP-Allow-CommunicationServices` | HTTPS | `10.10.1.0/24` | `*.communication.azure.com` | 443 | ✅ Allow |
+| 200 | `APP-Allow-GitHubActions` | HTTPS | `10.10.5.0/27` | `api.github.com`, `github.com` | 443 | ✅ Allow |
+| 9999 | `APP-Deny-All` | HTTPS/HTTP | `*` | `*` | 80, 443 | 🚫 Deny |
 
 
 DNAT: geen — inbound verkeer gaat via Application Gateway WAF v2 (pip-agw-prd), Azure Firewall is enkel voor egress en east-west verkeer.
