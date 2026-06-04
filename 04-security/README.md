@@ -439,6 +439,323 @@ Azure SQL Database (via Private Endpoint)
 
 **Opdracht**: Beschrijf in code (C# of Python) hoe de applicatie de connection string ophaalt via de DefaultAzureCredential zonder hardcoded wachtwoorden.
 
+# DefaultAzureCredential — connection string ophalen zonder wachtwoorden
+
+> **Applicatie:** ASP.NET WebForms · .NET Framework 4.8 · App Service P2v3 Windows
+> **NuGet packages vereist:**
+> - `Azure.Identity` (≥ 1.10)
+> - `Azure.Security.KeyVault.Secrets` (≥ 4.5)
+> - `Microsoft.Data.SqlClient` (≥ 5.0) — **niet** `System.Data.SqlClient`
+
+---
+
+## 1. SQL MI — rechtstreeks zonder wachtwoord
+
+De eenvoudigste aanpak: de connection string bevat geen wachtwoord.
+`Microsoft.Data.SqlClient` haalt het token zelf op via de Managed Identity.
+
+```csharp
+// ContosoDb.cs
+using Microsoft.Data.SqlClient;
+
+public class ContosoDb
+{
+    // Geen wachtwoord — Authentication=Active Directory Managed Identity
+    // haalt intern een Bearer token op via Azure IMDS (169.254.169.254)
+    private static readonly string _connectionString =
+        "Server=10.20.3.4,1433;" +
+        "Database=ContosoDB;" +
+        "Authentication=Active Directory Managed Identity;" +
+        "Encrypt=True;" +
+        "TrustServerCertificate=False;";
+
+    public static SqlConnection OpenConnection()
+    {
+        var conn = new SqlConnection(_connectionString);
+        conn.Open();
+        return conn;
+    }
+}
+```
+
+Gebruik in een WebForms code-behind:
+
+```csharp
+// OrdersPage.aspx.cs
+protected void Page_Load(object sender, EventArgs e)
+{
+    using (var conn = ContosoDb.OpenConnection())
+    using (var cmd = new SqlCommand("SELECT * FROM Orders", conn))
+    using (var reader = cmd.ExecuteReader())
+    {
+        GridViewOrders.DataSource = reader;
+        GridViewOrders.DataBind();
+    }
+}
+```
+
+`web.config` bevat enkel de server en database — **geen** wachtwoord:
+
+```xml
+<!-- web.config — veilig in Git -->
+<connectionStrings>
+  <add name="ContosoDB"
+       connectionString="Server=10.20.3.4,1433;
+                         Database=ContosoDB;
+                         Authentication=Active Directory Managed Identity;
+                         Encrypt=True;"
+       providerName="Microsoft.Data.SqlClient" />
+</connectionStrings>
+```
+
+---
+
+## 2. Key Vault — overige secrets ophalen
+
+Voor secrets die niet via SQL-auth werken (SAP-sleutel, Service Bus connection string)
+haalt de applicatie de waarden op uit Key Vault via `DefaultAzureCredential`.
+
+```csharp
+// KeyVaultService.cs
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
+using System;
+using System.Runtime.Caching;
+
+public class KeyVaultService
+{
+    private static readonly Uri _kvUri =
+        new Uri("https://kv-contoso-prd.vault.azure.net/");
+
+    // DefaultAzureCredential probeert automatisch:
+    // 1. Omgevingsvariabelen (lokaal dev met service principal)
+    // 2. Managed Identity          <-- dit wordt gebruikt op App Service
+    // 3. Azure CLI / Visual Studio  (lokaal dev)
+    private static readonly SecretClient _client =
+        new SecretClient(_kvUri, new DefaultAzureCredential());
+
+    // Cache: secrets niet bij elke request opnieuw ophalen
+    private static readonly MemoryCache _cache =
+        MemoryCache.Default;
+
+    public static string GetSecret(string secretName)
+    {
+        // Controleer cache eerst (TTL: 5 minuten)
+        if (_cache[secretName] is string cached)
+            return cached;
+
+        KeyVaultSecret secret = _client.GetSecret(secretName);
+        string value = secret.Value.Value;
+
+        _cache.Set(
+            secretName,
+            value,
+            DateTimeOffset.UtcNow.AddMinutes(5));
+
+        return value;
+    }
+}
+```
+
+Gebruik in `Global.asax.cs` bij applicatie-start:
+
+```csharp
+// Global.asax.cs
+public class Global : HttpApplication
+{
+    // Connection string voor Service Bus — opgehaald uit Key Vault bij startup
+    public static string ServiceBusConnection { get; private set; }
+    public static string SapApiKey           { get; private set; }
+
+    protected void Application_Start(object sender, EventArgs e)
+    {
+        // Eenmalig ophalen bij app-start — gecached in static properties
+        ServiceBusConnection = KeyVaultService.GetSecret("servicebus-connection");
+        SapApiKey            = KeyVaultService.GetSecret("sap-integration-key");
+
+        // Normale app-initialisatie
+        RouteConfig.RegisterRoutes(RouteTable.Routes);
+    }
+}
+```
+
+---
+
+## 3. Volledig voorbeeld — SapIntegrationService
+
+Een realistisch voorbeeld dat laat zien hoe beide patronen samenkomen:
+
+```csharp
+// SapIntegrationService.cs
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
+using Microsoft.Data.SqlClient;
+using System.Net.Http;
+using System.Net.Http.Headers;
+
+public class SapIntegrationService
+{
+    private readonly string _sapBaseUrl;
+    private readonly string _sapApiKey;
+
+    public SapIntegrationService()
+    {
+        // SAP-sleutel uit Key Vault — geen wachtwoord in code
+        _sapBaseUrl = "https://sap.contoso.local/api/v1";
+        _sapApiKey  = KeyVaultService.GetSecret("sap-integration-key");
+    }
+
+    /// <summary>
+    /// Haalt een productieorder op uit SAP en slaat status op in SQL MI.
+    /// Beide verbindingen zonder wachtwoord.
+    /// </summary>
+    public void SyncOrderStatus(string orderId)
+    {
+        // 1. SAP aanroepen via REST (API key uit Key Vault)
+        using var http = new HttpClient();
+        http.DefaultRequestHeaders.Add("X-API-Key", _sapApiKey);
+        var response = http.GetStringAsync(
+            $"{_sapBaseUrl}/orders/{orderId}").Result;
+
+        // 2. Status opslaan in SQL MI (Managed Identity auth)
+        using var conn = ContosoDb.OpenConnection();
+        using var cmd = new SqlCommand(
+            "UPDATE Orders SET SapStatus = @status, UpdatedAt = GETUTCDATE() " +
+            "WHERE OrderId = @id", conn);
+
+        cmd.Parameters.AddWithValue("@status", response);
+        cmd.Parameters.AddWithValue("@id",     orderId);
+        cmd.ExecuteNonQuery();
+    }
+}
+```
+
+---
+
+## 4. Azure Functions — Processor (C#)
+
+De Functions-code haalt de Service Bus trigger en SQL MI-verbinding op zonder
+wachtwoord. De `__credential: managedidentity` app setting regelt de trigger-auth.
+
+```csharp
+// OrderProcessorFunction.cs
+using Azure.Identity;
+using Azure.Messaging.ServiceBus;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
+
+public class OrderProcessorFunction
+{
+    // Connection string via Managed Identity — zie host.json / app settings:
+    // "ServiceBusConnection__fullyQualifiedNamespace": "sb-contoso-prd.servicebus.windows.net"
+    // "ServiceBusConnection__credential": "managedidentity"
+    [FunctionName("OrderProcessor")]
+    public void Run(
+        [ServiceBusTrigger("orders", Connection = "ServiceBusConnection")]
+        string messageBody,
+        ILogger log)
+    {
+        log.LogInformation("Order ontvangen: {body}", messageBody);
+
+        // SQL MI via Managed Identity — geen wachtwoord
+        var connStr =
+            "Server=10.20.3.4,1433;" +
+            "Database=ContosoDB;" +
+            "Authentication=Active Directory Managed Identity;" +
+            "Encrypt=True;";
+
+        using var conn = new SqlConnection(connStr);
+        conn.Open();
+
+        using var cmd = new SqlCommand(
+            "INSERT INTO ProcessedOrders (Payload, ProcessedAt) " +
+            "VALUES (@payload, GETUTCDATE())", conn);
+
+        cmd.Parameters.AddWithValue("@payload", messageBody);
+        cmd.ExecuteNonQuery();
+
+        log.LogInformation("Order verwerkt en opgeslagen in SQL MI.");
+    }
+}
+```
+
+---
+
+## 5. Lokaal ontwikkelen zonder Managed Identity
+
+Op de ontwikkelaarslaptop is er geen Managed Identity beschikbaar.
+`DefaultAzureCredential` valt automatisch terug op Azure CLI of Visual Studio login.
+
+```bash
+# Eenmalig inloggen op de ontwikkelaarslaptop
+az login
+az account set --subscription "Contoso-NonProd"
+
+# Geef de developer tijdelijk toegang tot de NonProd Key Vault
+az role assignment create \
+  --assignee "developer@contoso.be" \
+  --role "Key Vault Secrets User" \
+  --scope "/subscriptions/{nonprod-sub}/resourceGroups/rg-nonprod-security/providers/Microsoft.KeyVault/vaults/kv-contoso-nonprod"
+```
+
+Geen enkele codewijziging nodig — `DefaultAzureCredential` werkt identiek
+op productie (Managed Identity) en lokaal (Azure CLI login).
+
+Voor SQL MI lokaal: gebruik een tijdelijke SQL-gebruiker in NonProd,
+of tunnel via Azure Bastion naar de ontwikkel-database.
+
+---
+
+## Vereiste NuGet packages
+
+```xml
+<!-- packages.config (.NET Framework 4.8) -->
+<packages>
+  <package id="Azure.Identity"
+           version="1.10.4"
+           targetFramework="net48" />
+  <package id="Azure.Security.KeyVault.Secrets"
+           version="4.6.0"
+           targetFramework="net48" />
+  <package id="Microsoft.Data.SqlClient"
+           version="5.2.0"
+           targetFramework="net48" />
+  <!-- Transitive dependency van Azure.Identity -->
+  <package id="Azure.Core"
+           version="1.38.0"
+           targetFramework="net48" />
+  <package id="Microsoft.Identity.Client"
+           version="4.60.0"
+           targetFramework="net48" />
+</packages>
+```
+
+Of via Package Manager Console:
+
+```powershell
+Install-Package Azure.Identity -Version 1.10.4
+Install-Package Azure.Security.KeyVault.Secrets -Version 4.6.0
+Install-Package Microsoft.Data.SqlClient -Version 5.2.0
+```
+
+---
+
+## Samenvatting — wat verandert in de code
+
+| Oud (wachtwoord in code) | Nieuw (Managed Identity) |
+|---|---|
+| `Password=P@ssw0rd123!` in connection string | `Authentication=Active Directory Managed Identity` |
+| `System.Data.SqlClient` | `Microsoft.Data.SqlClient` |
+| API keys in `web.config` of `appsettings.json` | `KeyVaultService.GetSecret("naam")` |
+| Secrets als pipeline-variabelen | `AzureKeyVault@2` task in pipeline |
+| Manuele rotatie bij credential-wissel | Automatisch — token verloopt/vernieuwt zelf |
+| Geen audit wie wat gebruikt | Elke aanroep gelogd in Log Analytics |
+
+---
+
+*Versie 1.0 · team-cloud@contoso.be · .NET Framework 4.8 · INTERN*
+
 ---
 
 ## deel E: NIS2-compliance mapping
