@@ -30,6 +30,7 @@ Ontwerp het volledige Azure-netwerk voor de Contoso-migratie. Je documenterrt he
 | `GatewaySubnet` | `10.0.1.0/27` | VPN/ExpressRoute Gateway | ❌ (vereiste naam!) |
 | `AzureBastionSubnet` | `10.0.2.0/27` | Azure Bastion | ❌ (vereiste naam!) |
 | `snet-hub-dns` | `10.0.3.0/28` | Azure DNS Private Resolver | ✅ |
+| `snet-hub-mgmt` | `10.0.4.0/28` | Management (gereserveerd) | ✅ |
 
 > ⚠️ **Let op**: `AzureFirewallSubnet`, `GatewaySubnet` en `AzureBastionSubnet` zijn **vereiste exacte namen** — Azure accepteert geen andere namen voor deze speciale subnetten.
 
