@@ -88,90 +88,257 @@ Documenteer de **minimaal vereiste NSG-regels** per subnet. Gebruik onderstaande
 
 **Vul aan**: Maak vergelijkbare NSG-tabellen voor `nsg-func` en `nsg-data`.
 
-NSG: nsg-func (snet-spoke-func 10.20.5.0/27)
-AppServiceManagement op poort 454/455 is verplicht — zonder deze regel gaan Function App-instanties offline. Poort 5672 is toegevoegd naast 5671 omdat de Service Bus trigger-SDK beide AMQP-poorten kan gebruiken.
-| Prioriteit | Naam                  | Richting | Protocol | Bron                 | Doel                       | Poort         | Actie |
-| ---------- | --------------------- | -------- | -------- | -------------------- | -------------------------- | ------------- | ----- |
-| 100        | Allow-AGW-to-Func     | Inbound  | TCP      | 10.20.0.0/27         | `*`                        | 443           | Allow |
-| 110        | Allow-AppSvcMgmt      | Inbound  | TCP      | AppServiceManagement | `*`                        | 454,455       | Allow |
-| 4096       | Deny-All-Inbound      | Inbound  | `*`      | `*`                  | `*`                        | `*`           | Deny  |
-| 200        | Allow-Func-to-SQL     | Outbound | TCP      | `*`                  | 10.20.4.4/32               | 1433          | Allow |
-| 210        | Allow-Func-to-Storage | Outbound | TCP      | `*`                  | 10.20.2.5/32               | 443           | Allow |
-| 220        | Allow-Func-to-KV      | Outbound | TCP      | `*`                  | 10.20.3.4/32               | 443           | Allow |
-| 230        | Allow-Func-to-SB      | Outbound | TCP      | `*`                  | 10.20.2.7/32               | 443,5671,5672 | Allow |
-| 240        | Allow-Func-to-SAP     | Outbound | TCP      | `*`                  | 192.168.1.20/32            | 443,8080,3300 | Allow |
-| 250        | Allow-Func-to-CommSvc | Outbound | TCP      | `*`                  | AzureCommunicationServices | 443           | Allow |
-| 260        | Allow-Func-to-DNS     | Outbound | UDP      | `*`                  | 168.63.129.16/32           | 53            | Allow |
-| 270        | Allow-Func-to-Azure   | Outbound | TCP      | `*`                  | AzureCloud                 | 443           | Allow |
-| 4096       | Deny-All-Outbound     | Outbound | `*`      | `*`                  | `*`                        | `*`           | Deny  |
+## nsg-func
+
+**Subnet:** `snet-spoke-func` | **CIDR:** `10.20.2.0/27` | **Resource:** Azure Functions Consumption + VNet Integration (`fn-contoso-prd-001`)
+
+> ℹ️ Functions Consumption met VNet Integration stuurt **uitgaand** verkeer via dit subnet. Inbound trigger-aanroepen verlopen via het Azure Functions host-platform — geen directe inbound NSG-regel nodig voor triggers. Delegatie: `Microsoft.Web/serverFarms`. `/27` is het Microsoft-minimum voor VNet Integration.
+
+### Inbound
+
+| Prioriteit | Naam | Protocol | Bron | Doel | Poort | Actie | Toelichting |
+|:---:|---|:---:|---|:---:|:---:|:---:|---|
+| 100 | `Allow-AzureFunc-Management` | TCP | `AzureFunctions` | `*` | 443 | ✅ Allow | Azure Functions platform management en health checks — service tag |
+| 110 | `Allow-AzureCloud` | TCP | `AzureCloud` | `*` | 443 | ✅ Allow | Functions host-communicatie met Azure Cloud voor triggers en bindings |
+| 120 | `Allow-Bastion-Mgmt` | TCP | `AzureBastionSubnet` | `*` | 22, 3389 | ✅ Allow | Beheer via Bastion bij gebruik van Premium-plan met dedicated instances |
+| 4096 | `Deny-All-Inbound` | `*` | `*` | `*` | `*` | 🚫 Deny | Default deny — Functions ontvangt triggers via intern Azure-platform |
+
+### Outbound
+
+| Prioriteit | Naam | Protocol | Bron | Doel | Poort | Actie | Toelichting |
+|:---:|---|:---:|---|:---:|:---:|:---:|---|
+| 100 | `Allow-Func-to-SQL` | TCP | `*` | `snet-spoke-data` | 1433 | ✅ Allow | Reporter-functie via PE `10.20.3.4` naar SQL MI voor rapportage |
+| 110 | `Allow-Func-to-ServiceBus` | TCP | `*` | `snet-spoke-data` | 5671, 5672 | ✅ Allow | Processor-functie leest berichten van Service Bus via PE `10.20.3.7` — AMQP |
+| 120 | `Allow-Func-to-Storage` | TCP | `*` | `snet-spoke-data` | 443 | ✅ Allow | Functions vereist Storage Account voor state, triggers en deployment |
+| 130 | `Allow-Func-to-KV` | TCP | `*` | `snet-spoke-data` | 443 | ✅ Allow | Key Vault via Managed Identity en PE `10.20.3.6` voor secrets |
+| 140 | `Allow-Func-to-AzureMonitor` | TCP | `*` | `AzureMonitor` | 443 | ✅ Allow | Application Insights traces en telemetrie naar Azure Monitor |
+| 150 | `Allow-Func-to-AzureAD` | TCP | `*` | `AzureActiveDirectory` | 443 | ✅ Allow | Managed Identity token-aanvragen naar Entra ID — service tag |
+| 160 | `Allow-Func-to-DNS` | UDP | `*` | `snet-hub-dns` | 53 | ✅ Allow | DNS-resolutie via Hub DNS Private Resolver voor `privatelink.*` namen |
+| 4096 | `Deny-All-Outbound` | `*` | `*` | `*` | `*` | 🚫 Deny | Default deny — al het overige outbound geblokkeerd |
+
 ---
-NSG: nsg-data — snet-spoke-data 10.20.2.0/24 (Private Endpoints: Storage · Service Bus)
-| Prioriteit | Naam                    | Richting | Protocol | Bron           | Doel         | Poort           | Actie |
-| ---------- | ----------------------- | -------- | -------- | -------------- | ------------ | --------------- | ----- |
-| 100        | Allow-App-to-Blob-PE    | Inbound  | TCP      | 10.20.1.0/24   | 10.20.2.5/32 | 443             | Allow |
-| 110        | Allow-Func-to-Blob-PE   | Inbound  | TCP      | 10.20.5.0/27   | 10.20.2.5/32 | 443             | Allow |
-| 120        | Allow-App-to-File-PE    | Inbound  | TCP      | 10.20.1.0/24   | 10.20.2.6/32 | 443             | Allow |
-| 130        | Allow-App-to-SB-PE      | Inbound  | TCP      | 10.20.1.0/24   | 10.20.2.7/32 | 443, 5671       | Allow |
-| 140        | Allow-Func-to-SB-PE     | Inbound  | TCP      | 10.20.5.0/27   | 10.20.2.7/32 | 443, 5671, 5672 | Allow |
-| 150        | Allow-Onprem-to-Storage | Inbound  | TCP      | 192.168.0.0/16 | 10.20.2.5/32 | 443             | Allow |
-| 4096       | Deny-All-Inbound        | Inbound  | *        | *              | *            | *               | Deny  |
+
+## nsg-data
+
+**Subnet:** `snet-spoke-data` | **CIDR:** `10.20.3.0/24` | **Resource:** Private Endpoints — SQL MI · Blob ZRS · Key Vault · Service Bus · App Service
+
+> ⚠️ Dit subnet bevat **uitsluitend Private Endpoints**. Geen compute, geen App Service resources. NSG-regels beperken inbound tot de subnetten die PEs mogen aanroepen. Elke PE gebruikt 1 IP-adres.
+>
+> | Private Endpoint | IP-adres |
+> |---|---|
+> | SQL Managed Instance | `10.20.3.4` |
+> | Blob Storage (ZRS) | `10.20.3.5` |
+> | Key Vault | `10.20.3.6` |
+> | Service Bus | `10.20.3.7` |
+> | App Service | `10.20.3.8` |
+
+### Inbound
+
+| Prioriteit | Naam | Protocol | Bron | Doel | Poort | Actie | Toelichting |
+|:---:|---|:---:|---|:---:|:---:|:---:|---|
+| 100 | `Allow-Web-to-SQL-PE` | TCP | `snet-spoke-web` | `*` | 1433 | ✅ Allow | App Service (web + api) via PE `10.20.3.4` naar SQL MI |
+| 110 | `Allow-Func-to-SQL-PE` | TCP | `snet-spoke-func` | `*` | 1433 | ✅ Allow | Azure Functions (Reporter) via PE `10.20.3.4` naar SQL MI |
+| 120 | `Allow-Web-to-KV-PE` | TCP | `snet-spoke-web` | `*` | 443 | ✅ Allow | App Service haalt secrets op via PE `10.20.3.6` naar Key Vault |
+| 130 | `Allow-Func-to-KV-PE` | TCP | `snet-spoke-func` | `*` | 443 | ✅ Allow | Azure Functions haalt secrets op via PE `10.20.3.6` naar Key Vault |
+| 140 | `Allow-Web-to-Blob-PE` | TCP | `snet-spoke-web` | `*` | 443 | ✅ Allow | App Service leest/schrijft rapporten via PE `10.20.3.5` naar Blob Storage |
+| 150 | `Allow-Func-to-SB-PE` | TCP | `snet-spoke-func` | `*` | 5671, 5672 | ✅ Allow | Functions leest berichten via PE `10.20.3.7` van Service Bus — AMQP |
+| 160 | `Allow-Web-to-SB-PE` | TCP | `snet-spoke-web` | `*` | 5671, 5672 | ✅ Allow | App Service publiceert berichten via PE `10.20.3.7` naar Service Bus |
+| 170 | `Allow-Mgmt-to-Data` | TCP | `snet-spoke-mgmt` | `*` | 443, 1433 | ✅ Allow | DevOps agents en jump VMs voor database-beheer en Key Vault-operaties |
+| 4096 | `Deny-All-Inbound` | `*` | `*` | `*` | `*` | 🚫 Deny | Default deny — PE-subnet niet bereikbaar vanuit internet of andere subnetten |
+
+### Outbound
+
+| Prioriteit | Naam | Protocol | Bron | Doel | Poort | Actie | Toelichting |
+|:---:|---|:---:|---|:---:|:---:|:---:|---|
+| 100 | `Allow-PE-to-SQL-MI` | TCP | `*` | `snet-sqli-dedicated` | 1433 | ✅ Allow | PE SQL MI stuurt verkeer door naar SQL MI in dedicated subnet |
+| 110 | `Allow-PE-to-Azure-Storage` | TCP | `*` | `Storage` | 443 | ✅ Allow | PE Blob/Files stuurt door naar Azure Storage — service tag |
+| 120 | `Allow-PE-to-Azure-KV` | TCP | `*` | `AzureKeyVault` | 443 | ✅ Allow | PE Key Vault stuurt door naar KV service — service tag |
+| 130 | `Allow-PE-to-Azure-SB` | TCP | `*` | `ServiceBus` | 5671, 5672 | ✅ Allow | PE Service Bus stuurt door naar SB service — service tag |
+| 140 | `Allow-DNS` | UDP | `*` | `snet-hub-dns` | 53 | ✅ Allow | DNS-resolutie voor PE-hostnamen via Hub DNS Private Resolver |
+| 4096 | `Deny-All-Outbound` | `*` | `*` | `*` | `*` | 🚫 Deny | Default deny — PE-subnet communiceert enkel met PaaS-services |
+
+---
+
+## nsg-sqli
+
+**Subnet:** `snet-sqli-dedicated` | **CIDR:** `10.20.4.0/24` | **Resource:** SQL Managed Instance GP — DEDICATED subnet
+
+> ⚠️ SQL MI vereist speciale NSG-regels gedocumenteerd door Microsoft. **Ontbrekende regels veroorzaken deployment-fouten.** Dit subnet is DEDICATED — geen andere resources zijn toegestaan. Microsoft reserveert intern 16+ IP-adressen voor het 3-node HA-cluster.
+
+### Inbound
+
+| Prioriteit | Naam | Protocol | Bron | Doel | Poort | Actie | Toelichting |
+|:---:|---|:---:|---|:---:|:---:|:---:|---|
+| 100 | `Allow-MI-Management-9000` | TCP | `SqlManagement` | `*` | 9000 | ✅ Allow | SQL MI management vanuit Azure — service tag `SqlManagement` vereist |
+| 101 | `Allow-MI-Management-9003` | TCP | `SqlManagement` | `*` | 9003 | ✅ Allow | SQL MI management poort 9003 — vereist voor deployment en beheer |
+| 102 | `Allow-MI-Redirect-11000` | TCP | `SqlManagement` | `*` | 11000–11999 | ✅ Allow | SQL MI redirect connection poorten — gebruikt door client-applicaties |
+| 103 | `Allow-MI-Redirect-14000` | TCP | `SqlManagement` | `*` | 14000–14999 | ✅ Allow | SQL MI redirect poorten alternatieve range |
+| 110 | `Allow-HealthProbe` | TCP | `AzureLoadBalancer` | `*` | `*` | ✅ Allow | Azure Load Balancer health probes voor SQL MI HA-cluster |
+| 120 | `Allow-Internal-Comms` | `*` | `10.20.4.0/24` | `10.20.4.0/24` | `*` | ✅ Allow | Interne communicatie tussen SQL MI cluster-nodes (primary + 2 secondary) |
+| 130 | `Allow-SQL-from-Web` | TCP | `snet-spoke-data` | `*` | 1433 | ✅ Allow | SQL-verbindingen van Private Endpoint subnet naar SQL MI op poort 1433 |
+| 140 | `Allow-SQL-Mgmt` | TCP | `snet-spoke-mgmt` | `*` | 1433 | ✅ Allow | DBA-toegang via jump VM in mgmt-subnet voor database-beheer |
+| 4096 | `Deny-All-Inbound` | `*` | `*` | `*` | `*` | 🚫 Deny | Default deny — SQL MI alleen bereikbaar via gedefinieerde routes |
+
+### Outbound
+
+| Prioriteit | Naam | Protocol | Bron | Doel | Poort | Actie | Toelichting |
+|:---:|---|:---:|---|:---:|:---:|:---:|---|
+| 100 | `Allow-MI-Mgmt-Out-443` | TCP | `*` | `AzureCloud` | 443 | ✅ Allow | SQL MI management naar Azure Cloud (certificaten, telemetrie, updates) |
+| 101 | `Allow-MI-Mgmt-Out-12000` | TCP | `*` | `AzureCloud` | 12000 | ✅ Allow | SQL MI management poort 12000 outbound naar Azure Cloud |
+| 110 | `Allow-Internal-Out` | `*` | `10.20.4.0/24` | `10.20.4.0/24` | `*` | ✅ Allow | Interne cluster-communicatie outbound tussen SQL MI nodes |
+| 120 | `Allow-SQL-Geo-Replication` | TCP | `*` | `10.20.4.0/24` | 5022 | ✅ Allow | Always On geo-replicatie naar secondary in North Europe via poort 5022 |
+| 130 | `Allow-DNS` | UDP | `*` | `snet-hub-dns` | 53 | ✅ Allow | DNS-resolutie via Hub DNS Private Resolver |
+| 4096 | `Deny-All-Outbound` | `*` | `*` | `*` | `*` | 🚫 Deny | Default deny — SQL MI communiceert enkel met gedefinieerde bestemmingen |
+
+---
+
+## nsg-mgmt
+
+**Subnet:** `snet-spoke-mgmt` | **CIDR:** `10.20.5.0/27` | **Resource:** DevOps Agents · Jump VMs
+
+> ℹ️ Beheer-subnet voor Azure DevOps self-hosted agents en jump VMs. Toegang verloopt uitsluitend via Azure Bastion — geen publieke IP-adressen op VMs. Outbound HTTPS gaat via Hub Firewall (UDR).
+
+### Inbound
+
+| Prioriteit | Naam | Protocol | Bron | Doel | Poort | Actie | Toelichting |
+|:---:|---|:---:|---|:---:|:---:|:---:|---|
+| 100 | `Allow-Bastion-RDP` | TCP | `AzureBastionSubnet` | `*` | 3389 | ✅ Allow | RDP-toegang via Azure Bastion voor Windows jump VMs — geen publiek IP |
+| 110 | `Allow-Bastion-SSH` | TCP | `AzureBastionSubnet` | `*` | 22 | ✅ Allow | SSH-toegang via Azure Bastion voor Linux-gebaseerde agents |
+| 120 | `Allow-AzureDevOps-Inbound` | TCP | `AzureCloud` | `*` | 443 | ✅ Allow | Azure DevOps service communiceert terug naar self-hosted agents |
+| 4096 | `Deny-All-Inbound` | `*` | `*` | `*` | `*` | 🚫 Deny | Default deny — geen directe toegang van internet of andere subnetten |
+
+### Outbound
+
+| Prioriteit | Naam | Protocol | Bron | Doel | Poort | Actie | Toelichting |
+|:---:|---|:---:|---|:---:|:---:|:---:|---|
+| 100 | `Allow-DevOps-to-AzDO` | TCP | `*` | `AzureDevOps` | 443 | ✅ Allow | Self-hosted agents verbinden met Azure DevOps — service tag |
+| 110 | `Allow-Mgmt-to-SQL` | TCP | `*` | `snet-spoke-data` | 1433 | ✅ Allow | DBA-toegang via jump VM naar SQL MI via Private Endpoint |
+| 120 | `Allow-Mgmt-to-KV` | TCP | `*` | `snet-spoke-data` | 443 | ✅ Allow | Key Vault beheer (certificaten, secrets rotatie) via PE |
+| 130 | `Allow-Mgmt-to-Storage` | TCP | `*` | `snet-spoke-data` | 443 | ✅ Allow | Blob Storage en Azure Files via PE voor beheer en deployment |
+| 140 | `Allow-Mgmt-to-AzureMonitor` | TCP | `*` | `AzureMonitor` | 443 | ✅ Allow | Azure Monitor agent telemetrie vanuit DevOps agents en jump VMs |
+| 150 | `Allow-Mgmt-to-Internet` | TCP | `*` | `Internet` | 443 | ✅ Allow | Outbound HTTPS via Hub Firewall voor package downloads en Azure CLI |
+| 160 | `Allow-DNS` | UDP | `*` | `snet-hub-dns` | 53 | ✅ Allow | DNS-resolutie via Hub DNS Private Resolver |
+| 4096 | `Deny-All-Outbound` | `*` | `*` | `*` | `*` | 🚫 Deny | Default deny — overig outbound via Hub Firewall (UDR) |
+
 ## private endpoints
 
 Documenteer alle **Private Endpoints** in de architectuur:
 
-| Resource | Private Endpoint naam | Subnet | DNS Zone |
-|---|---|---|---|
-| Resource               | Private Endpoint naam   | Subnet              | DNS Zone                           |
-| ---------------------- | ----------------------- | ------------------- | ---------------------------------- |
-| SQL Managed Instance   | pep-sqlmi-contoso-prd   | snet-spoke-sqlmi    | privatelink.database.windows.net   |
-| Storage Account (blob) | pep-st-blob-contoso-prd | snet-spoke-data     | privatelink.blob.core.windows.net  |
-| Storage Account (file) | pep-st-file-contoso-prd | snet-spoke-data     | privatelink.file.core.windows.net  |
-| Key Vault              | pep-kv-contoso-prd      | snet-spoke-security | privatelink.vaultcore.azure.net    |
-| Service Bus            | pep-sb-contoso-prd      | snet-spoke-data     | privatelink.servicebus.windows.net |
-| App Service (web)      | pep-web-contoso-prd     | snet-spoke-app      | privatelink.azurewebsites.net      |
-| App Service (api)      | pep-api-contoso-prd     | snet-spoke-app      | privatelink.azurewebsites.net      |
+## Overzicht
+
+| # | PE naam | Resource | Type | Privé IP | Sub-resource | Private DNS Zone |
+|:---:|---|---|---|---|---|---|
+| 1 | `pe-sql-contoso-prd` | `sql-contoso-prd-001` | SQL Managed Instance | `10.20.3.4` | `managedInstance` | `privatelink.database.windows.net` |
+| 2 | `pe-blob-contoso-prd` | `stcontoso001` | Storage Account (Blob) | `10.20.3.5` | `blob` | `privatelink.blob.core.windows.net` |
+| 3 | `pe-kv-contoso-prd` | `kv-contoso-prd` | Key Vault | `10.20.3.6` | `vault` | `privatelink.vaultcore.azure.net` |
+| 4 | `pe-sb-contoso-prd` | `sb-contoso-prd` | Service Bus | `10.20.3.7` | `namespace` | `privatelink.servicebus.windows.net` |
+| 5 | `pe-app-contoso-prd` | `web-contoso-prd` | App Service | `10.20.3.8` | `sites` | `privatelink.azurewebsites.net` |
+
+> **Azure reserveert 5 IPs per subnet** (`.0` network · `.1` gateway · `.2`+`.3` DNS · `.255` broadcast).
+> Eerste bruikbare IP in `10.20.3.0/24` is `10.20.3.4` → PE-adressen starten vanaf `.4`.
 
 ### waarom private endpoints?
 Documenteer in 3–5 zinnen waarom je Private Endpoints gebruikt in plaats van Service Endpoints. Wat zijn de voordelen en nadelen?
 
-### Private endpoints geven een prive-IP adres in het vnet, daardoor zijn ze publiek niet toegankelijk waardoor ze veiliger zijn voor aanvallen van buitenaf.
-### Ze werken ook goed voor verbindingen van On-premises,omdat alles via DNS en VPN naar het interne IP gaat. Het nadeel is dat ze meer kosten en extra werk geven om uw DNS en Private iP te beheren.
+Private endpoints geven een prive-IP adres in het vnet, daardoor zijn ze publiek niet toegankelijk waardoor ze veiliger zijn voor aanvallen van buitenaf.
+Ze werken ook goed voor verbindingen van On-premises,omdat alles via DNS en VPN naar het interne IP gaat. Het nadeel is dat ze meer kosten en extra werk geven om uw DNS en Private iP te beheren.
 ---
 
-## DNS-architectuur
+## Private DNS Zones
 
-### vereiste DNS Private Zones
+Elke Private Endpoint vereist een bijhorende Private DNS Zone voor correcte naamresolutie. Alle zones zijn gelinkt aan het **Hub VNet** (`10.0.0.0/16`) zodat alle gepeerde spokes dezelfde resolutie hebben.
 
-| Private DNS Zone | Gekoppeld aan | Doel |
+| Private DNS Zone | Gekoppeld aan | PE resource |
 |---|---|---|
-| `privatelink.database.windows.net` | Hub VNet | SQL Database |
-| `privatelink.blob.core.windows.net` | Hub VNet | Storage (blob) |
-| `privatelink.file.core.windows.net` | Hub VNet | Storage (files) |
+| `privatelink.database.windows.net` | Hub VNet | SQL Managed Instance |
+| `privatelink.blob.core.windows.net` | Hub VNet | Storage Account (Blob) |
 | `privatelink.vaultcore.azure.net` | Hub VNet | Key Vault |
-| `privatelink.azurewebsites.net` | Hub VNet | App Service (indien PE) |
+| `privatelink.servicebus.windows.net` | Hub VNet | Service Bus |
+| `privatelink.azurewebsites.net` | Hub VNet | App Service |
 
-### DNS-resolutie flow
+**Waarom aan Hub VNet koppelen?**
 
-Beschrijf de DNS-resolutie flow voor een request vanuit on-prem naar de Azure SQL Private Endpoint:
+In een Hub-Spoke topologie worden Private DNS Zones **altijd** gekoppeld aan het Hub VNet — niet aan individuele spokes. De Azure DNS Private Resolver in `snet-hub-dns` (`10.0.3.0/28`) stuurt DNS-queries van alle spokes door via het Hub VNet, waardoor alle zones automatisch beschikbaar zijn vanuit elk spoke-netwerk.
+
+## DNS-resolutie flow
 
 ```
-On-prem client
-  │
-  ▼
-On-prem DNS Server (DC01)
-  │  "sql-contoso-prd.database.windows.net" — conditionally forwarded naar Azure
-  ▼
-Azure DNS Private Resolver (snet-hub-dns)
-  │  Zoekt in Private DNS Zone: privatelink.database.windows.net
-  ▼
-Private Endpoint IP: 10.20.X.X (snet-spoke-data)
-  │
-  ▼
-Azure SQL Database (via private network, geen publiek internet)
+App Service (web-contoso-prd) vraagt verbinding met SQL MI
+│
+├─ Stap 1: DNS query voor "sql-contoso-prd-001.database.windows.net"
+│
+├─ Stap 2: Azure DNS (168.63.129.16) stuurt door naar
+│          DNS Private Resolver inbound endpoint (snet-hub-dns)
+│
+├─ Stap 3: Resolver zoekt in Private DNS Zone
+│          "privatelink.database.windows.net" (gelinkt aan Hub VNet)
+│
+├─ Stap 4: A-record gevonden:
+│          sql-contoso-prd-001.privatelink.database.windows.net → 10.20.3.4
+│
+└─ Stap 5: TCP verbinding naar 10.20.3.4:1433
+           Verkeer blijft intern (VNet → PE → SQL MI subnet)
+           Nooit via publiek internet ✅
+```
+
+> ⚠️ **Zonder Private DNS Zone** lost `sql-contoso-prd-001.database.windows.net` op naar het **publieke IP** van SQL MI — ook al is publieke toegang uitgeschakeld. Dit resulteert in een verbindingsfout. De DNS Zone is dus geen optie maar een **vereiste**.
 ```
 
 **Vul in**: Teken dit diagram netter en documenteer welke DNS-forwarder-configuratie nodig is op DC01.
-<img width="1472" height="1480" alt="image" src="https://github.com/user-attachments/assets/c9856861-07f9-4416-853d-36df71a8cf95" />
+## Waarom DNS forwarding op DC01?
+
+In een Hub-Spoke topologie lost Azure DNS (`168.63.129.16`) Private DNS Zones automatisch
+op **binnen** het VNet. On-premises systemen bereiken dit adres echter niet — het is een
+Azure-intern virtual IP dat niet routeerbaar is over VPN.
+
+Zonder forwarder configuratie op DC01 gebeurt het volgende voor on-premises clients:
+
+```
+DC01 Gent probeert: sql-contoso-prd-001.database.windows.net
+└─ Stuurt query naar publieke DNS (8.8.8.8 of ISP-resolver)
+     └─ Ontvangt publiek Azure IP (40.x.x.x)
+          └─ TCP verbinding naar publiek IP → GEWEIGERD
+             (publicDataEndpointEnabled = false op SQL MI)
+```
+
+Met forwarder configuratie:
+
+```
+DC01 Gent probeert: sql-contoso-prd-001.database.windows.net
+└─ Conditional forwarder: *.database.windows.net → DNS Private Resolver (10.0.3.x)
+     └─ Resolver zoekt in Private DNS Zone (Hub VNet)
+          └─ A-record: 10.20.3.4
+               └─ TCP verbinding via VPN-tunnel → PE 10.20.3.4:1433 ✅
+```
+
+---
+
+## Architectuur DNS-resolutie
+
+```
+ON-PREMISES                          AZURE HUB (10.0.0.0/16)
+─────────────────                    ──────────────────────────────────────
+DC01 Gent                            DNS Private Resolver
+192.168.1.10 (PDC)                   snet-hub-dns  10.0.3.0/28
+│                                    │
+│  Conditional Forwarders:           │  Inbound endpoint:  10.0.3.4
+│  *.database.windows.net     ──────►│  Outbound endpoint: 10.0.3.5
+│  *.blob.core.windows.net    ──────►│
+│  *.vaultcore.azure.net      ──────►│       ▼
+│  *.servicebus.windows.net   ──────►│  Private DNS Zones (gelinkt aan Hub)
+│  *.azurewebsites.net        ──────►│  privatelink.database.windows.net
+│                                    │    └─ A: sql-contoso-prd-001 → 10.20.3.4
+│  Alle andere queries:              │  privatelink.blob.core.windows.net
+│  → contoso.local (AD DS)           │    └─ A: stcontoso001 → 10.20.3.5
+│  → 8.8.8.8 / ISP (internet)       │  privatelink.vaultcore.azure.net
+                                     │    └─ A: kv-contoso-prd → 10.20.3.6
+                                     │  privatelink.servicebus.windows.net
+                                     │    └─ A: sb-contoso-prd → 10.20.3.7
+                                     │  privatelink.azurewebsites.net
+                                     │    └─ A: web-contoso-prd → 10.20.3.8
+                                     
+<img width="1562" height="881" alt="dns-flow-diagram_final" src="https://github.com/user-attachments/assets/116c3ad4-514d-4bc8-8708-5e402e54c533" />
+
 
 ---
 
