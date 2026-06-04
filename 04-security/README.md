@@ -175,19 +175,12 @@ Ondersteunt een deploymentstrategie met deployment slots (bijvoorbeeld staging e
 - Zero-downtime deployments.
 - Lagere kans op verstoringen in productie.
 - Snelle rollback-mogelijkheden.
-
 ---
-
 ## 3. Read-only configuratie
-
 **Toegestane actie**
-
 - `Microsoft.Web/sites/config/read`
-
 **Niet toegestaan**
-
 - `Microsoft.Web/sites/config/write`
-
 ### Motivatie
 Applicatiebeheerders moeten kunnen controleren welke configuratie actief is, maar mogen deze niet wijzigen.
 
@@ -195,16 +188,11 @@ Applicatiebeheerders moeten kunnen controleren welke configuratie actief is, maa
 - Voorkomt configuratiedrift.
 - Waarborgt Infrastructure-as-Code governance.
 - Verkleint het risico op foutieve productieaanpassingen.
-
 ---
-
 ## 4. Monitoring en validatie
-
 **Toegestane acties**
-
 - `Microsoft.Insights/metrics/read`
 - `Microsoft.Insights/logs/read`
-
 ### Motivatie
 Na een deployment moet een ontwikkelaar kunnen controleren of de applicatie correct functioneert.
 
@@ -212,17 +200,13 @@ Na een deployment moet een ontwikkelaar kunnen controleren of de applicatie corr
 - Zelfstandig uitvoeren van validaties.
 - Snellere probleemoplossing.
 - Minder afhankelijkheid van Operations-teams.
-
 ---
-
 ## 5. Geen infrastructuurbeheer
-
 **Uitgesloten acties**
 
 - `Microsoft.Network/*`
 - `Microsoft.Compute/*`
 - `Microsoft.Authorization/*`
-
 ### Motivatie
 Netwerk-, compute- en RBAC-beheer behoren tot de verantwoordelijkheid van het Platform Team.
 
@@ -230,15 +214,10 @@ Netwerk-, compute- en RBAC-beheer behoren tot de verantwoordelijkheid van het Pl
 - Bescherming van de Landing Zone architectuur.
 - Voorkomt ongeautoriseerde wijzigingen.
 - Duidelijke taakverdeling tussen teams.
-
 ---
-
 ## 6. Geen toegang tot Key Vault
-
 **Uitgesloten acties**
-
 - `Microsoft.KeyVault/*`
-
 ### Motivatie
 Secrets worden beheerd via Managed Identities, Key Vault RBAC en het Security Team.
 
@@ -246,41 +225,129 @@ Secrets worden beheerd via Managed Identities, Key Vault RBAC en het Security Te
 - Bescherming van gevoelige gegevens.
 - Vermindering van insider-risico's.
 - Betere naleving van security policies.
-
 ---
-
 # Conclusie
 
 De rol **Contoso Application Deployer** biedt precies voldoende rechten om applicaties veilig te deployen en te beheren binnen de Contoso Azure Landing Zone. Door infrastructuur-, netwerk-, security- en configuratierechten uit te sluiten, sluit de rol volledig aan op het Least Privilege-principe en de governance-richtlijnen van de organisatie.
 
+# Deel C – Microsoft Defender for Cloud
 
-## deel C: microsoft defender for cloud
+## 1. Planselectie
 
-### plan selectie
+Binnen de Contoso Manufacturing Azure Landing Zone wordt Microsoft Defender for Cloud gebruikt om de beveiligingspositie van de omgeving continu te monitoren en bedreigingen vroegtijdig te detecteren. Per resourcetype wordt een afweging gemaakt tussen kostprijs en beveiligingswaarde.
 
-Kies voor elke resource type welk Defender-plan je activeert. Onderbouw je keuze (kost vs. beveiligingswaarde).
+### Defender-plannen per resource type
 
-| Resource Type | Defender Plan | Maandkost (indicatief) | Activeren? |
-|---|---|---|---|
-| Azure SQL Database | Defender for SQL | € 15/server/maand | ✅ / ❌ + motivering |
-| App Service | Defender for App Service | € 15/app plan/maand | ✅ / ❌ + motivering |
-| Storage Account | Defender for Storage | Op basis van transacties | ✅ / ❌ + motivering |
-| Key Vault | Defender for Key Vault | € 0.02/10k operaties | ✅ / ❌ + motivering |
-| Resource Manager | Defender for Resource Manager | € 4/subscription/maand | ✅ / ❌ + motivering |
-| Servers (indien VMs) | Defender for Servers P2 | € 15/server/maand | n.v.t. (PaaS) |
-
-### secure score doelstelling
-
-Documenteer welke **Secure Score** je nastreeft en welke aanbevelingen je prioriteit geeft:
-
-| Prioriteit | Aanbeveling | Huidige score impact |
-|---|---|---|
-| 🔴 Kritiek | Enable MFA for all users | Hoog |
-| 🔴 Kritiek | Disable public network access | Hoog |
-| 🟠 Hoog | Enable Defender for SQL | Middel |
-| 🟡 Middel | Apply system updates | Laag |
+| Resource Type | Defender Plan | Maandkost (indicatief) | Activeren? | Motivering |
+|---------------|--------------|------------------------|------------|------------|
+| Azure SQL Managed Instance | Defender for SQL | ± €15/instance/maand | ✅ Ja | De SQL Managed Instance bevat bedrijfskritische data. Defender for SQL biedt Vulnerability Assessment, Threat Detection en Advanced Threat Protection tegen SQL-injecties, verdachte logins en misbruik van databanken. |
+| App Service | Defender for App Service | ± €15/App Service Plan/maand | ✅ Ja | De webapplicatie is extern bereikbaar via Azure Front Door en Application Gateway. Defender detecteert kwetsbaarheden, verdachte activiteiten en configuratiefouten binnen de applicatielaag. |
+| Storage Account | Defender for Storage | Verbruiksgebaseerd | ✅ Ja | De Storage Account bevat applicatiegegevens, rapporten en exports. Defender detecteert malware, verdachte toegangspatronen en mogelijke datalekken. |
+| Azure Key Vault | Defender for Key Vault | ± €0,02 per 10.000 operaties | ✅ Ja | Key Vault bevat secrets, certificaten en connection strings. Een compromis van deze component zou impact hebben op de volledige applicatieomgeving. De beveiligingswaarde is hoog terwijl de kost verwaarloosbaar blijft. |
+| Azure Resource Manager | Defender for Resource Manager | ± €4/subscription/maand | ✅ Ja | Detecteert verdachte wijzigingen, privilege-escalaties en ongeautoriseerde beheeracties binnen Azure-resources. |
+| Domain Controllers & Management VM's | Defender for Servers P2 | ± €15/server/maand | ✅ Ja | De omgeving bevat Azure VM's voor Active Directory Domain Controllers en identiteitsservices. Defender for Servers P2 biedt Endpoint Detection & Response (EDR), Vulnerability Assessment, Just-In-Time Access en detectie van laterale bewegingen. |
 
 ---
+
+## 2. Verantwoording van de gekozen strategie
+
+De ontworpen Azure Landing Zone volgt een **PaaS-first strategie**, maar bevat ook enkele kritieke virtuele machines voor identiteitsbeheer.
+
+Microsoft Defender for Cloud wordt daarom geactiveerd op alle componenten die:
+
+- bedrijfskritische gegevens bevatten;
+- publiek toegankelijk zijn;
+- identiteiten beheren;
+- toegang geven tot andere systemen;
+- een hoog risico vormen bij compromittering.
+
+Deze aanpak zorgt voor een optimale balans tussen beveiliging en kostenbeheersing.
+
+### Waarom Defender for SQL?
+
+Azure SQL Managed Instance bevat standaard reeds verschillende beveiligingsfuncties zoals:
+
+- Transparent Data Encryption (TDE)
+- Firewallregels
+- Back-ups
+- High Availability
+- Auditing
+
+Deze functionaliteiten beschermen echter niet tegen geavanceerde aanvallen of foutieve configuraties.
+
+Door **Defender for SQL** te activeren worden extra beveiligingslagen toegevoegd:
+
+- Vulnerability Assessment
+- Threat Detection
+- Detectie van SQL-injecties
+- Detectie van verdachte login-patronen
+- Beveiligingsaanbevelingen binnen Defender for Cloud
+
+Aangezien de SQL Managed Instance de centrale databron van de applicatie vormt, wordt dit Defender-plan als essentieel beschouwd.
+
+### Waarom Defender for Servers P2?
+
+Hoewel de workload grotendeels bestaat uit Azure PaaS-diensten, bevat de architectuur ook:
+
+- Active Directory Domain Controllers
+- Entra Connect Sync server
+- Managementservers
+
+Deze systemen vormen de basis van de hybride identiteitsarchitectuur. Een succesvolle aanval op een Domain Controller kan leiden tot volledige compromittering van zowel Azure- als on-premises identiteiten.
+
+Daarom wordt Defender for Servers P2 geactiveerd om:
+
+- kwetsbaarheden automatisch te detecteren;
+- Endpoint Detection & Response (EDR) te voorzien;
+- laterale bewegingen te detecteren;
+- beheerpoorten te beschermen via Just-In-Time Access.
+
+---
+
+# 3. Secure Score Doelstelling
+
+## Doelstelling
+
+Voor de productieomgeving wordt een **Microsoft Secure Score van minimaal 80%** nagestreefd.
+
+Deze score biedt een goede balans tussen:
+
+- beveiliging;
+- operationele haalbaarheid;
+- beheerkost;
+- compliance met Microsoft best practices.
+
+Door gebruik te maken van Azure Policy, Microsoft Defender for Cloud en de Azure Landing Zone architectuur kan deze score duurzaam worden behaald.
+
+---
+
+## Prioritaire aanbevelingen
+
+| Prioriteit | Aanbeveling | Score Impact | Motivatie |
+|------------|-------------|--------------|-----------|
+| 🔴 Kritiek | Enable MFA for all users | Hoog | Multi-Factor Authentication voorkomt misbruik van gecompromitteerde accounts en vormt een essentieel onderdeel van het Zero Trust-model. |
+| 🔴 Kritiek | Disable public network access | Hoog | SQL MI, Storage Accounts, Key Vault en Service Bus zijn uitsluitend bereikbaar via Private Endpoints. Hierdoor wordt het aanvalsvlak aanzienlijk verkleind. |
+| 🔴 Kritiek | Enable Defender for Servers P2 | Hoog | Bescherming van Domain Controllers en identiteitsservers tegen geavanceerde aanvallen. |
+| 🟠 Hoog | Enable Defender for SQL | Middel | Detecteert databaseaanvallen, kwetsbaarheden en verdachte activiteiten binnen SQL Managed Instance. |
+| 🟠 Hoog | Enable Defender for App Service | Middel | Beschermt de publiek toegankelijke applicatielaag tegen kwetsbaarheden en aanvallen. |
+| 🟡 Middel | Configure Just-In-Time Access | Laag | Vermindert blootstelling van beheerinterfaces op managementservers. |
+| 🟡 Middel | Apply System Updates | Laag | Houdt alle VM's en beheersystemen up-to-date met de laatste beveiligingsupdates. |
+| 🟡 Middel | Enable Continuous Monitoring | Laag | Verzamelt beveiligingslogs via Azure Monitor, Log Analytics en Microsoft Sentinel. |
+
+---
+
+# 4. Verwacht Resultaat
+
+Door de implementatie van Microsoft Defender for Cloud wordt verwacht dat de omgeving:
+
+- een Secure Score van minimaal **80%** behaalt;
+- voldoet aan de principes van **Zero Trust Security**;
+- voldoet aan de aanbevelingen van het **Microsoft Cloud Adoption Framework (CAF)**;
+- voldoet aan de **Azure Landing Zone Reference Architecture**;
+- bedreigingen sneller detecteert en hierop kan reageren;
+- een hogere beveiligingsvolwassenheid bereikt zonder een significante stijging van de operationele kosten.
+
+De combinatie van Microsoft Defender for Cloud, Azure Policy, Private Endpoints, Azure Firewall Premium en Microsoft Sentinel zorgt voor een gelaagde beveiligingsarchitectuur die geschikt is voor een productieomgeving van Contoso Manufacturing NV.
 
 ## deel D: key vault architectuur
 
