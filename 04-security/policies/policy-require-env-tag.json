@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-09-01/policyDefinition.json#",
-  "name": "require-contoso-mandatory-tags-with-values",
-  "displayName": "Require mandatory Contoso tags with allowed values",
-  "description": "Enforces the presence of mandatory Contoso tags and validates allowed values for Environment and DataClassification.",
+  "name": "require-contoso-governance-tags",
+  "displayName": "Require Contoso governance tags",
+  "description": "Ensures all mandatory Contoso governance tags exist and contain approved values.",
   "mode": "Indexed",
   "metadata": {
     "category": "Tags",
@@ -14,7 +14,7 @@
       "type": "String",
       "metadata": {
         "displayName": "Effect",
-        "description": "The effect determines what happens when the policy rule is evaluated to match."
+        "description": "Policy enforcement mode."
       },
       "allowedValues": [
         "Deny",
@@ -22,6 +22,53 @@
         "Disabled"
       ],
       "defaultValue": "Deny"
+    },
+    "allowedEnvironments": {
+      "type": "Array",
+      "metadata": {
+        "displayName": "Allowed environments",
+        "description": "Allowed values for the Environment tag."
+      },
+      "defaultValue": [
+        "dev",
+        "tst",
+        "prd"
+      ]
+    },
+    "requiredApplication": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Required application",
+        "description": "Required value for the Application tag."
+      },
+      "defaultValue": "contoso-manufacturing"
+    },
+    "requiredOwner": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Required owner",
+        "description": "Required value for the Owner tag."
+      },
+      "defaultValue": "team-cloud@contoso.be"
+    },
+    "requiredCostCenter": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Required cost center",
+        "description": "Required value for the CostCenter tag."
+      },
+      "defaultValue": "CC-IT-001"
+    },
+    "allowedDataClassifications": {
+      "type": "Array",
+      "metadata": {
+        "displayName": "Allowed data classifications",
+        "description": "Allowed values for the DataClassification tag."
+      },
+      "defaultValue": [
+        "internal",
+        "confidential"
+      ]
     }
   },
   "policyRule": {
@@ -29,38 +76,23 @@
       "anyOf": [
         {
           "field": "tags['Environment']",
-          "exists": "false"
-        },
-        {
-          "field": "tags['Environment']",
-          "notIn": [
-            "dev",
-            "tst",
-            "prd"
-          ]
+          "notIn": "[parameters('allowedEnvironments')]"
         },
         {
           "field": "tags['Application']",
-          "exists": "false"
+          "notEquals": "[parameters('requiredApplication')]"
         },
         {
           "field": "tags['Owner']",
-          "exists": "false"
+          "notEquals": "[parameters('requiredOwner')]"
         },
         {
           "field": "tags['CostCenter']",
-          "exists": "false"
+          "notEquals": "[parameters('requiredCostCenter')]"
         },
         {
           "field": "tags['DataClassification']",
-          "exists": "false"
-        },
-        {
-          "field": "tags['DataClassification']",
-          "notIn": [
-            "internal",
-            "confidential"
-          ]
+          "notIn": "[parameters('allowedDataClassifications')]"
         }
       ]
     },
