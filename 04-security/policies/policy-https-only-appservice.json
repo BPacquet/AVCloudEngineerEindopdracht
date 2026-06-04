@@ -1,19 +1,30 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-09-01/policyDefinition.json#",
   "name": "require-https-appservice",
-  "displayName": "Require HTTPS-only on App Service",
-  "description": "Denies the creation or modification of App Service resources that do not enforce HTTPS. HTTP traffic must be redirected to HTTPS.",
+  "displayName": "[Contoso] Require HTTPS-only on App Service",
+  "description": "Denies the creation or modification of App Service resources that do not enforce HTTPS. HTTP traffic must be redirected to HTTPS. Verplicht door Contoso Security Baseline en NIS2 Art. 21(2)(h) (versleuteling in transit). In NonProd-subscriptie toegewezen met effect 'Audit' voor developer-productiviteit.",
   "mode": "Indexed",
   "metadata": {
     "category": "App Service",
-    "version": "1.0.0",
-    "author": "delaware cloud practice"
+    "version": "1.1.0",
+    "author": "Bjorn Pacquet",
+    "updatedBy": "team-cloud@contoso.be",
+    "nis2Reference": "Art. 21(2)(h) — Gebruik van cryptografie en encryptie",
+    "assignmentScope": {
+      "prod": "Subscription — Contoso-Prod | effect: Deny",
+      "nonprod": "Subscription — Contoso-NonProd | effect: Audit"
+    },
+    "contosoResources": [
+      "web-contoso-prd (snet-spoke-web 10.20.1.0/24)",
+      "api-contoso-prd (snet-spoke-web 10.20.1.0/24)"
+    ]
   },
   "parameters": {
     "effect": {
       "type": "String",
       "metadata": {
-        "displayName": "Effect"
+        "displayName": "Effect",
+        "description": "Deny blokkeert aanmaak/wijziging. Audit logt enkel. Gebruik Deny in Prod, Audit in NonProd."
       },
       "allowedValues": [
         "Deny",
@@ -31,6 +42,24 @@
           "equals": "Microsoft.Web/sites"
         },
         {
+          "anyOf": [
+            {
+              "field": "Microsoft.Web/sites/httpsOnly",
+              "exists": "false"
+            },
+            {
+              "field": "Microsoft.Web/sites/httpsOnly",
+              "notEquals": true
+            }
+          ]
+        }
+      ]
+    },
+    "then": {
+      "effect": "[parameters('effect')]"
+    }
+  }
+}
           "field": "Microsoft.Web/sites/httpsOnly",
           "notEquals": true
         }
