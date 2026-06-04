@@ -105,27 +105,154 @@ Maak een **custom RBAC-rol** voor een "Contoso App Deployer" die enkel App Servi
 
 ```json
 {
-  "Name": "Contoso App Service Deployer",
-  "Description": "Can deploy and swap App Service slots. Cannot modify configuration or infrastructure.",
+  "Name": "Contoso Application Deployer",
+  "Description": "Deploy application code and perform slot swaps on App Services. No access to networking, security, infrastructure or configuration settings.",
   "Actions": [
     "Microsoft.Web/sites/read",
+    "Microsoft.Web/sites/config/read",
     "Microsoft.Web/sites/slots/read",
-    "Microsoft.Web/sites/slots/slotsswap/action",
     "Microsoft.Web/sites/publish/action",
-    "Microsoft.Web/sites/slots/publish/action"
+    "Microsoft.Web/sites/slots/publish/action",
+    "Microsoft.Web/sites/slots/slotsswap/action",
+    "Microsoft.Insights/metrics/read",
+    "Microsoft.Insights/logs/read"
   ],
-  "NotActions": [],
+  "NotActions": [
+    "Microsoft.Web/sites/write",
+    "Microsoft.Web/sites/delete",
+    "Microsoft.Web/sites/config/write",
+    "Microsoft.Network/*",
+    "Microsoft.Authorization/*",
+    "Microsoft.KeyVault/*",
+    "Microsoft.Compute/*"
+  ],
   "DataActions": [],
   "NotDataActions": [],
   "AssignableScopes": [
-    "/subscriptions/{subscriptionId}/resourceGroups/rg-contoso-frontend"
+    "/subscriptions/{subscriptionId}/resourceGroups/rg-app-prod",
+    "/subscriptions/{subscriptionId}/resourceGroups/rg-app-nonprod"
   ]
 }
 ```
 
 **Opdracht**: Pas bovenstaand voorbeeld aan en documenteer je keuzes.
 
+# Verantwoording keuzes – Custom RBAC Rol
+
+## Contoso Application Deployer
+
+### Doel van de rol
+De custom rol **Contoso Application Deployer** is ontworpen volgens het **Least Privilege-principe**. De rol biedt uitsluitend de rechten die nodig zijn om applicaties naar Azure App Services te deployen en deployments te valideren, zonder toegang te geven tot infrastructuur-, netwerk- of beveiligingscomponenten.
+
 ---
+
+## 1. Alleen applicatiedeployment
+
+**Toegestane actie**
+
+- `Microsoft.Web/sites/publish/action`
+
+### Motivatie
+Met deze actie kan een ontwikkelaar of CI/CD-pipeline nieuwe applicatiecode publiceren naar een bestaande App Service zonder wijzigingen aan de onderliggende infrastructuur.
+
+### Voordelen
+- Ondersteunt CI/CD-processen.
+- Vermindert risico op ongecontroleerde infrastructuurwijzigingen.
+- Duidelijke scheiding tussen platformbeheer en applicatiebeheer.
+
+---
+
+## 2. Slot Swapping
+
+**Toegestane actie**
+
+- `Microsoft.Web/sites/slots/slotsswap/action`
+
+### Motivatie
+Ondersteunt een deploymentstrategie met deployment slots (bijvoorbeeld staging en productie). Nieuwe versies kunnen eerst worden getest voordat ze naar productie worden omgewisseld.
+
+### Voordelen
+- Zero-downtime deployments.
+- Lagere kans op verstoringen in productie.
+- Snelle rollback-mogelijkheden.
+
+---
+
+## 3. Read-only configuratie
+
+**Toegestane actie**
+
+- `Microsoft.Web/sites/config/read`
+
+**Niet toegestaan**
+
+- `Microsoft.Web/sites/config/write`
+
+### Motivatie
+Applicatiebeheerders moeten kunnen controleren welke configuratie actief is, maar mogen deze niet wijzigen.
+
+### Voordelen
+- Voorkomt configuratiedrift.
+- Waarborgt Infrastructure-as-Code governance.
+- Verkleint het risico op foutieve productieaanpassingen.
+
+---
+
+## 4. Monitoring en validatie
+
+**Toegestane acties**
+
+- `Microsoft.Insights/metrics/read`
+- `Microsoft.Insights/logs/read`
+
+### Motivatie
+Na een deployment moet een ontwikkelaar kunnen controleren of de applicatie correct functioneert.
+
+### Voordelen
+- Zelfstandig uitvoeren van validaties.
+- Snellere probleemoplossing.
+- Minder afhankelijkheid van Operations-teams.
+
+---
+
+## 5. Geen infrastructuurbeheer
+
+**Uitgesloten acties**
+
+- `Microsoft.Network/*`
+- `Microsoft.Compute/*`
+- `Microsoft.Authorization/*`
+
+### Motivatie
+Netwerk-, compute- en RBAC-beheer behoren tot de verantwoordelijkheid van het Platform Team.
+
+### Voordelen
+- Bescherming van de Landing Zone architectuur.
+- Voorkomt ongeautoriseerde wijzigingen.
+- Duidelijke taakverdeling tussen teams.
+
+---
+
+## 6. Geen toegang tot Key Vault
+
+**Uitgesloten acties**
+
+- `Microsoft.KeyVault/*`
+
+### Motivatie
+Secrets worden beheerd via Managed Identities, Key Vault RBAC en het Security Team.
+
+### Voordelen
+- Bescherming van gevoelige gegevens.
+- Vermindering van insider-risico's.
+- Betere naleving van security policies.
+
+---
+
+# Conclusie
+
+De rol **Contoso Application Deployer** biedt precies voldoende rechten om applicaties veilig te deployen en te beheren binnen de Contoso Azure Landing Zone. Door infrastructuur-, netwerk-, security- en configuratierechten uit te sluiten, sluit de rol volledig aan op het Least Privilege-principe en de governance-richtlijnen van de organisatie.
+
 
 ## deel C: microsoft defender for cloud
 
