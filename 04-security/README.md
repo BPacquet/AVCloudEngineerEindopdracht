@@ -360,16 +360,48 @@ Het eerste diagram toont de twee-KV-architectuur en de inhoud. Het tweede diagra
 
 
 ### secrets, keys en certificates
-<img width="1446" height="2304" alt="image" src="https://github.com/user-attachments/assets/020cf3f7-ebaa-49c3-a75d-2dcf6751fcc8" />
+## kv-contoso-prd — Workload Key Vault
 
-| Type | Naam (voorbeeld) | Beschrijving | Rotatie |
-|---|---|---|---|
-| **Secret** | `sql-connection-string` | Connection string SQL Database | 90 dagen |
-| **Secret** | `smtp-password` | SMTP relay wachtwoord | 180 dagen |
-| **Secret** | `sap-api-key` | SAP REST API key | 90 dagen |
-| **Key** | `cmk-sql-encryption` | Customer Managed Key voor SQL TDE | 1 jaar |
-| **Key** | `cmk-storage-encryption` | Customer Managed Key voor Storage | 1 jaar |
-| **Certificate** | `ssl-contoso-app` | TLS/SSL certificaat App Service | 1 jaar (auto-renew) |
+**Subscriptie:** Contoso-Prod
+**Resource Group:** rg-contoso-security
+**Private Endpoint:** `10.20.3.6` — snet-spoke-data
+
+| Naam | Type | Beschrijving | Consument | Rotatie | Bron in diagram |
+|---|---|---|---|---|---|
+| `sql-connection-string` | Secret | SQL MI connection string (Managed Identity auth — geen wachtwoord) | web-contoso-prd · api-contoso-prd · fn-contoso-prd | Automatisch bij MI-rotatie | SQL MI → Managed Identity → KV |
+| `servicebus-connection` | Secret | Service Bus namespace connection string voor AMQP | api-contoso-prd · fn-contoso-prd | Manueel — 90 dagen | Service Bus Standard · PE: 10.20.3.7 |
+| `storage-account-key` | Secret | Storage Account access key voor Blob ZRS + Azure Files | fn-contoso-prd-001 (state + triggers) | Automatisch — 90 dagen | Storage Account Blob ZRS · PE: 10.20.3.5 |
+| `sap-integration-key` | Secret | SAP ERP REST/SOAP API key voor on-prem integratie | fn-contoso-prd-001 (Processor) | Manueel — 180 dagen | SAP ERP Server · REST/SOAP via VPN |
+| `appsvc-client-secret` | Secret | Entra ID app registration client secret | web-contoso-prd (OAuth2/OIDC) | Manueel — 1 jaar | Entra ID P1 · MFA · CA · PIM · SSPR |
+| `contoso-be-tls` | Certificaat | TLS-certificaat voor contoso.be — gekoppeld aan AGW | Application Gateway WAF v2 · SSL offload | Automatisch — 30d voor verval | AGW WAF v2 · SSL/TLS offload · OWASP |
+| `api-contoso-be-tls` | Certificaat | TLS-certificaat voor api.contoso.be | Application Gateway WAF v2 · API backend | Automatisch — 30d voor verval | AGW WAF v2 · URL-based routing |
+
+---
+
+## kv-contoso-platform — Platform Key Vault
+
+**Subscriptie:** Platform Identity
+**Resource Group:** rg-identity
+**Opmerking:** Managed HSM optie — geen applicatie-toegang
+
+| Naam | Type | Beschrijving | Consument | Rotatie | Bron in diagram |
+|---|---|---|---|---|---|
+| `fw-tls-root-ca` | Certificaat | Root CA voor Azure Firewall TLS-inspectie — vertrouwd op alle VMs | Azure Firewall Premium Policy · alle VMs (via GPO) | Manueel — 2 jaar | Azure Firewall Premium · IDPS · TLS-inspectie |
+| `entra-connect-cert` | Certificaat | Authenticatiecertificaat voor Entra Connect Sync service | vm-do-01 (primary) · vm-do-02 (staging) | Automatisch — 1 jaar | Entra Connect Sync · PHS · staging server (HA) |
+| `platform-mgmt-cert` | Certificaat | Authenticatiecertificaat voor Automation Account runbooks | Automation Account · runbooks | Automatisch — 1 jaar | Automation Account · runbooks · patching |
+| `platform-encryption-key` | Key | Customer-managed key (RSA 2048) voor toekomstige encryptie-at-rest | Gereserveerd — nog niet actief | Manueel — 2 jaar | Key Vault (platform) · Managed HSM · Certs · Soft-delete |
+
+---
+
+## Legenda
+
+| Type | Betekenis |
+|---|---|
+| Secret | Verbindingsstring of API key |
+| Certificaat | TLS- of authenticatiecertificaat |
+| Key | Cryptografische sleutel |
+| Automatisch | Rotatie via Key Vault lifecycle policy of Azure-platform |
+| Manueel | Handmatige rotatie door verantwoordelijk team |
 
 ### toegangsbeleid
 
