@@ -421,20 +421,33 @@ Gebruik **RBAC voor Key Vault** (niet het legacy access policy model).
 Documenteer hoe **Managed Identity** gebruikt wordt om wachtwoorden uit de applicatiecode te verwijderen:
 
 ```
-App Service
-    │
-    │ (System Assigned Managed Identity)
-    ▼
-Azure Entra ID (automatisch token)
-    │
-    ▼
-Key Vault (RBAC: Key Vault Secrets User)
-    │
-    ▼
-Secret: "sql-connection-string"
-    │
-    ▼
-Azure SQL Database (via Private Endpoint)
+App Service start op
+  │
+  ▼
+App vraagt token aan via Azure IMDS
+  GET http://169.254.169.254/metadata/identity/oauth2/token
+      ?api-version=2019-08-01
+      &resource=https://vault.azure.net
+  (intern platform — geen netwerk buiten Azure)
+  │
+  ▼
+Azure geeft Bearer token terug
+  eyJ0eXAiOiJKV1QiLCJhbGciOiJS...
+  (JWT geldig voor ~1 uur, automatisch vernieuwd)
+  │
+  ▼
+App roept Key Vault aan via Private Endpoint (10.20.3.6)
+  GET https://kv-contoso-prd.vault.azure.net/secrets/sql-connection-string
+  Authorization: Bearer eyJ0eXAi...
+  │
+  ▼
+Key Vault valideert token bij Entra ID
+  Is de Managed Identity van web-contoso-prd
+  toegewezen aan Key Vault Secrets User rol?
+  │
+  ▼
+Secret waarde terug in geheugen
+  Nooit wegschrijven naar disk, logs of omgevingsvariabelen
 ```
 
 **Opdracht**: Beschrijf in code (C# of Python) hoe de applicatie de connection string ophaalt via de DefaultAzureCredential zonder hardcoded wachtwoorden.
