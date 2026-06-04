@@ -1,19 +1,34 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-09-01/policyDefinition.json#",
-  "name": "deny-public-sql-database",
-  "displayName": "Deny public network access on Azure SQL Database",
-  "description": "Denies creation or update of Azure SQL Servers with public network access enabled. All access must go through Private Endpoints.",
+  "name": "deny-public-sql",
+  "displayName": "[Contoso] Deny public network access on SQL (Managed Instance + SQL Server)",
+  "description": "Denies creation or update of SQL Managed Instance and Azure SQL Server resources with public network access enabled. All access must go through Private Endpoints. Contoso gebruikt SQL Managed Instance (sql-contoso-prd-001) — de SQL Server-regel is opgenomen voor toekomstige uitbreiding en NonProd SQL Database Serverless. NIS2 Art. 21(2)(a) — netwerksegmentatie en Zero-Trust.",
   "mode": "Indexed",
   "metadata": {
     "category": "SQL",
-    "version": "1.0.0",
-    "author": "delaware cloud practice"
+    "version": "1.1.0",
+    "author": "Bjorn Pacquet",
+    "updatedBy": "team-cloud@contoso.be",
+    "nis2Reference": "Art. 21(2)(a) — Beleid inzake risicoanalyse en beveiliging van informatiesystemen",
+    "relatedControls": [
+      "ALZ-Corp-NoPubIP",
+      "ISO27001-A.13.1.3"
+    ],
+    "assignmentScope": {
+      "prod": "Subscription — Contoso-Prod | effect: Deny",
+      "nonprod": "Subscription — Contoso-NonProd | effect: Deny"
+    },
+    "contosoResources": [
+      "sql-contoso-prd-001 (SQL Managed Instance — snet-sqli-dedicated 10.20.4.0/24)",
+      "SQL Database Serverless — NonProd (tst/dev)"
+    ]
   },
   "parameters": {
     "effect": {
       "type": "String",
       "metadata": {
-        "displayName": "Effect"
+        "displayName": "Effect",
+        "description": "Deny weigert aanmaak en update. Audit logt bestaande overtredingen zonder te blokkeren."
       },
       "allowedValues": [
         "Deny",
@@ -25,14 +40,38 @@
   },
   "policyRule": {
     "if": {
-      "allOf": [
+      "anyOf": [
         {
-          "field": "type",
-          "equals": "Microsoft.Sql/servers"
+          "allOf": [
+            {
+              "field": "type",
+              "equals": "Microsoft.Sql/managedInstances"
+            },
+            {
+              "anyOf": [
+                {
+                  "field": "Microsoft.Sql/managedInstances/publicDataEndpointEnabled",
+                  "exists": "false"
+                },
+                {
+                  "field": "Microsoft.Sql/managedInstances/publicDataEndpointEnabled",
+                  "equals": "true"
+                }
+              ]
+            }
+          ]
         },
         {
-          "field": "Microsoft.Sql/servers/publicNetworkAccess",
-          "notEquals": "Disabled"
+          "allOf": [
+            {
+              "field": "type",
+              "equals": "Microsoft.Sql/servers"
+            },
+            {
+              "field": "Microsoft.Sql/servers/publicNetworkAccess",
+              "notEquals": "Disabled"
+            }
+          ]
         }
       ]
     },
