@@ -354,8 +354,13 @@ De combinatie van Microsoft Defender for Cloud, Azure Policy, Private Endpoints,
 ### vereisten
 
 Documenteer de Key Vault-architectuur voor de Contoso-omgeving.
+<img width="1446" height="1160" alt="image" src="https://github.com/user-attachments/assets/2e30b23c-6005-4775-b7ca-fdb93b52be45" />
+Het eerste diagram toont de twee-KV-architectuur en de inhoud. Het tweede diagram toont de toegangsflow via Managed Identity.
+<img width="1446" height="620" alt="image" src="https://github.com/user-attachments/assets/b0afc41b-6ef8-461e-93ac-a1c7fad15105" />
+
 
 ### secrets, keys en certificates
+<img width="1446" height="2304" alt="image" src="https://github.com/user-attachments/assets/020cf3f7-ebaa-49c3-a75d-2dcf6751fcc8" />
 
 | Type | Naam (voorbeeld) | Beschrijving | Rotatie |
 |---|---|---|---|
