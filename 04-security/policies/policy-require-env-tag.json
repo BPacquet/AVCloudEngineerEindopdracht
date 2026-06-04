@@ -1,20 +1,20 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-09-01/policyDefinition.json#",
-  "name": "require-environment-tag",
-  "displayName": "Require tag 'Environment' on all resources",
-  "description": "Enforces the presence of the required 'Environment' tag on all resources. Allowed values: dev, tst, prd.",
+  "name": "require-contoso-mandatory-tags-with-values",
+  "displayName": "Require mandatory Contoso tags with allowed values",
+  "description": "Enforces the presence of mandatory Contoso tags and validates allowed values for Environment and DataClassification.",
   "mode": "Indexed",
   "metadata": {
     "category": "Tags",
-    "version": "1.0.0",
-    "author": "delaware cloud practice"
+    "version": "1.1.0",
+    "author": "Bjorn Pacquet"
   },
   "parameters": {
     "effect": {
       "type": "String",
       "metadata": {
         "displayName": "Effect",
-        "description": "The effect determines what happens when the policy rule is evaluated to match"
+        "description": "The effect determines what happens when the policy rule is evaluated to match."
       },
       "allowedValues": [
         "Deny",
@@ -26,10 +26,41 @@
   },
   "policyRule": {
     "if": {
-      "allOf": [
+      "anyOf": [
         {
           "field": "tags['Environment']",
           "exists": "false"
+        },
+        {
+          "field": "tags['Environment']",
+          "notIn": [
+            "dev",
+            "tst",
+            "prd"
+          ]
+        },
+        {
+          "field": "tags['Application']",
+          "exists": "false"
+        },
+        {
+          "field": "tags['Owner']",
+          "exists": "false"
+        },
+        {
+          "field": "tags['CostCenter']",
+          "exists": "false"
+        },
+        {
+          "field": "tags['DataClassification']",
+          "exists": "false"
+        },
+        {
+          "field": "tags['DataClassification']",
+          "notIn": [
+            "internal",
+            "confidential"
+          ]
         }
       ]
     },
