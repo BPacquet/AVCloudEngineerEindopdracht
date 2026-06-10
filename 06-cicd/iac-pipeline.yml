@@ -1,0 +1,398 @@
+# iac-pipeline.yml
+# Deploys Bicep infrastructure to Azure — Contoso Manufacturing
+# Triggered on changes to 05-bicep/**
+# Omgevingen: dev (auto) → tst (auto, develop branch) → prd (manual, 2 approvers)
+
+name: 'IaC Deploy — $(Date:yyyyMMdd)$(Rev:.r)'
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+  paths:
+    include:
+      - '05-bicep/**'
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+  paths:
+    include:
+      - '05-bicep/**'
+
+# ──────────────────────────────────────────────
+# Variable Groups (Azure DevOps Library)
+# Vervangt hardcoded waarden — beheer via Pipelines → Library
+# ──────────────────────────────────────────────
+# Vereiste variable groups:
+#   contoso-common      : azureLocation, appName, bicepDirectory
+#   contoso-dev-secrets : sqlAdminPassword, keyVaultAdminObjectId, aadAdminGroupObjectId, logAnalyticsWorkspaceId
+#   contoso-tst-secrets : sqlAdminPassword, keyVaultAdminObjectId, aadAdminGroupObjectId, logAnalyticsWorkspaceId
+#   contoso-prd-secrets : sqlAdminPassword, keyVaultAdminObjectId, aadAdminGroupObjectId, logAnalyticsWorkspaceId, drServerName
+# Alle *-secrets groups zijn gelinkt aan Azure Key Vault (kv-contoso-prd)
+# via de "Link secrets from an Azure key vault" optie in de Library.
+
+variables:
+  - group: contoso-common
+  - name: bicepDirectory
+    value: '$(Build.SourcesDirectory)/05-bicep'
+  - name: azureLocation
+    value: 'westeurope'
+
+# ──────────────────────────────────────────────
+# Stages
+# ──────────────────────────────────────────────
+
+stages:
+
+  # ────────── VALIDATE ──────────────────────────
+  - stage: Validate
+    displayName: '🔍 Validate Bicep'
+    jobs:
+      - job: Lint
+        displayName: 'Bicep Lint & Build'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: 'Install Bicep CLI (latest)'
+            inputs:
+              azureSubscription: 'sc-azure-dev'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az bicep upgrade
+                az bicep version
+
+          - task: AzureCLI@2
+            displayName: 'Bicep Lint — alle modules'
+            inputs:
+              azureSubscription: 'sc-azure-dev'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -e
+                echo "Linting main.bicep..."
+                az bicep lint --file $(bicepDirectory)/main.bicep
+
+                echo "Linting alle modules..."
+                find $(bicepDirectory)/modules -name "*.bicep" | while read f; do
+                  echo "  → $f"
+                  az bicep lint --file "$f"
+                done
+                echo "✅ Lint geslaagd"
+
+          - task: AzureCLI@2
+            displayName: 'Bicep Build (compileren naar ARM JSON)'
+            inputs:
+              azureSubscription: 'sc-azure-dev'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az bicep build \
+                  --file $(bicepDirectory)/main.bicep \
+                  --outdir $(Build.ArtifactStagingDirectory)
+                echo "✅ ARM JSON aangemaakt in $(Build.ArtifactStagingDirectory)"
+                ls -la $(Build.ArtifactStagingDirectory)
+
+          - publish: '$(Build.ArtifactStagingDirectory)'
+            artifact: 'bicep-arm'
+            displayName: 'Publiceer ARM artifact'
+
+      # ── What-If per omgeving ──────────────────
+      - job: WhatIf_Dev
+        displayName: 'What-If: DEV'
+        dependsOn: Lint
+        pool:
+          vmImage: 'ubuntu-latest'
+        variables:
+          - group: contoso-dev-secrets
+        steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: 'What-If DEV — toon wijzigingen'
+            inputs:
+              azureSubscription: 'sc-azure-dev'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az deployment sub what-if \
+                  --location $(azureLocation) \
+                  --template-file $(bicepDirectory)/main.bicep \
+                  --parameters $(bicepDirectory)/main.dev.bicepparam \
+                  --parameters environment='dev' \
+                               sqlAdminPassword='$(sqlAdminPassword)' \
+                               keyVaultAdminObjectId='$(keyVaultAdminObjectId)' \
+                               aadAdminGroupObjectId='$(aadAdminGroupObjectId)' \
+                               logAnalyticsWorkspaceId='$(logAnalyticsWorkspaceId)' \
+                  --result-format FullResourcePayloads
+
+      - job: WhatIf_Tst
+        displayName: 'What-If: TST'
+        dependsOn: Lint
+        pool:
+          vmImage: 'ubuntu-latest'
+        condition: in(variables['Build.SourceBranch'], 'refs/heads/develop', 'refs/heads/main')
+        variables:
+          - group: contoso-tst-secrets
+        steps:
+          - checkout: self
+
+          - task: AzureCLI@2
+            displayName: 'What-If TST — toon wijzigingen'
+            inputs:
+              azureSubscription: 'sc-azure-tst'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                az deployment sub what-if \
+                  --location $(azureLocation) \
+                  --template-file $(bicepDirectory)/main.bicep \
+                  --parameters environment='tst' \
+                               sqlAdminPassword='$(sqlAdminPassword)' \
+                               keyVaultAdminObjectId='$(keyVaultAdminObjectId)' \
+                               aadAdminGroupObjectId='$(aadAdminGroupObjectId)' \
+                               logAnalyticsWorkspaceId='$(logAnalyticsWorkspaceId)' \
+                  --result-format FullResourcePayloads
+
+  # ────────── DEPLOY DEV ────────────────────────
+  - stage: Deploy_Dev
+    displayName: '🚀 Deploy — DEV'
+    dependsOn: Validate
+    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+    variables:
+      - group: contoso-dev-secrets
+    jobs:
+      - deployment: DeployInfra_Dev
+        displayName: 'Deploy Infrastructure DEV'
+        pool:
+          vmImage: 'ubuntu-latest'
+        environment: 'dev'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: AzureCLI@2
+                  displayName: 'Deploy Bicep → DEV'
+                  inputs:
+                    azureSubscription: 'sc-azure-dev'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -e
+                      az deployment sub create \
+                        --name "iac-dev-$(Build.BuildNumber)" \
+                        --location $(azureLocation) \
+                        --template-file $(bicepDirectory)/main.bicep \
+                        --parameters $(bicepDirectory)/main.dev.bicepparam \
+                        --parameters environment='dev' \
+                                     sqlAdminPassword='$(sqlAdminPassword)' \
+                                     keyVaultAdminObjectId='$(keyVaultAdminObjectId)' \
+                                     aadAdminGroupObjectId='$(aadAdminGroupObjectId)' \
+                                     logAnalyticsWorkspaceId='$(logAnalyticsWorkspaceId)'
+
+                - task: AzureCLI@2
+                  displayName: 'Verifieer deployment DEV'
+                  inputs:
+                    azureSubscription: 'sc-azure-dev'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      az deployment sub show \
+                        --name "iac-dev-$(Build.BuildNumber)" \
+                        --query "{state:properties.provisioningState, timestamp:properties.timestamp}" \
+                        --output table
+
+  # ────────── DEPLOY TST ────────────────────────
+  - stage: Deploy_Tst
+    displayName: '🧪 Deploy — TST'
+    dependsOn: Deploy_Dev
+    condition: >
+      and(
+        succeeded(),
+        in(variables['Build.SourceBranch'], 'refs/heads/develop', 'refs/heads/main')
+      )
+    variables:
+      - group: contoso-tst-secrets
+    jobs:
+      - deployment: DeployInfra_Tst
+        displayName: 'Deploy Infrastructure TST'
+        pool:
+          vmImage: 'ubuntu-latest'
+        environment: 'tst'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: AzureCLI@2
+                  displayName: 'Deploy Bicep → TST'
+                  inputs:
+                    azureSubscription: 'sc-azure-tst'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -e
+                      az deployment sub create \
+                        --name "iac-tst-$(Build.BuildNumber)" \
+                        --location $(azureLocation) \
+                        --template-file $(bicepDirectory)/main.bicep \
+                        --parameters environment='tst' \
+                                     sqlAdminPassword='$(sqlAdminPassword)' \
+                                     keyVaultAdminObjectId='$(keyVaultAdminObjectId)' \
+                                     aadAdminGroupObjectId='$(aadAdminGroupObjectId)' \
+                                     logAnalyticsWorkspaceId='$(logAnalyticsWorkspaceId)'
+
+                - task: AzureCLI@2
+                  displayName: 'Verifieer deployment TST'
+                  inputs:
+                    azureSubscription: 'sc-azure-tst'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      az deployment sub show \
+                        --name "iac-tst-$(Build.BuildNumber)" \
+                        --query "{state:properties.provisioningState, timestamp:properties.timestamp}" \
+                        --output table
+
+  # ────────── DEPLOY PRD ────────────────────────
+  # Approval gate geconfigureerd in Azure DevOps Environment 'prd':
+  #   Pipelines → Environments → prd → Approvals and checks
+  #   → Approvals: bjorn.pacquet@contoso.be + TechLead (min 2)
+  #   → Timeout: 24 uur
+  #   → Business hours check: ma-vr 08:00–18:00 CET
+  - stage: Deploy_Prd
+    displayName: '🏭 Deploy — PRD'
+    dependsOn: Deploy_Tst
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    variables:
+      - group: contoso-prd-secrets
+    jobs:
+      - deployment: DeployInfra_Prd
+        displayName: 'Deploy Infrastructure PRD'
+        pool:
+          vmImage: 'ubuntu-latest'
+        environment: 'prd'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: AzureCLI@2
+                  displayName: 'What-If PRD — finale controle voor approval'
+                  inputs:
+                    azureSubscription: 'sc-azure-prd'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      echo "=== FINALE WHAT-IF — REVIEW VOOR DEPLOYMENT ==="
+                      az deployment sub what-if \
+                        --location $(azureLocation) \
+                        --template-file $(bicepDirectory)/main.bicep \
+                        --parameters $(bicepDirectory)/main.bicepparam \
+                        --parameters environment='prd' \
+                                     sqlAdminPassword='$(sqlAdminPassword)' \
+                                     keyVaultAdminObjectId='$(keyVaultAdminObjectId)' \
+                                     aadAdminGroupObjectId='$(aadAdminGroupObjectId)' \
+                                     logAnalyticsWorkspaceId='$(logAnalyticsWorkspaceId)' \
+                                     drServerName='$(drServerName)' \
+                        --result-format FullResourcePayloads
+
+                - task: AzureCLI@2
+                  displayName: 'Deploy Bicep → PRD'
+                  inputs:
+                    azureSubscription: 'sc-azure-prd'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -e
+                      az deployment sub create \
+                        --name "iac-prd-$(Build.BuildNumber)" \
+                        --location $(azureLocation) \
+                        --template-file $(bicepDirectory)/main.bicep \
+                        --parameters $(bicepDirectory)/main.bicepparam \
+                        --parameters environment='prd' \
+                                     sqlAdminPassword='$(sqlAdminPassword)' \
+                                     keyVaultAdminObjectId='$(keyVaultAdminObjectId)' \
+                                     aadAdminGroupObjectId='$(aadAdminGroupObjectId)' \
+                                     logAnalyticsWorkspaceId='$(logAnalyticsWorkspaceId)' \
+                                     drServerName='$(drServerName)'
+
+                - task: AzureCLI@2
+                  displayName: 'Verifieer deployment PRD'
+                  inputs:
+                    azureSubscription: 'sc-azure-prd'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      az deployment sub show \
+                        --name "iac-prd-$(Build.BuildNumber)" \
+                        --query "{state:properties.provisioningState, timestamp:properties.timestamp}" \
+                        --output table
+
+  # ────────── ROLLBACK PRD ─────────────────────
+  # Manueel te starten via Azure DevOps UI na falen in PRD
+  # Voert een Git revert uit en herstart de pipeline automatisch niet —
+  # de operator beslist welke commit terug moet.
+  - stage: Rollback_Prd
+    displayName: '⏪ Rollback — PRD (manueel)'
+    dependsOn: Deploy_Prd
+    condition: failed()   # Alleen beschikbaar als Deploy_Prd mislukt
+    variables:
+      - group: contoso-prd-secrets
+    jobs:
+      - deployment: RollbackInfra_Prd
+        displayName: 'Rollback Infrastructure PRD'
+        pool:
+          vmImage: 'ubuntu-latest'
+        environment: 'prd'   # Vereist ook approval voor rollback
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: AzureCLI@2
+                  displayName: 'Annuleer lopende deployment (indien actief)'
+                  inputs:
+                    azureSubscription: 'sc-azure-prd'
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      # Controleer of er een lopende deployment is
+                      STATE=$(az deployment sub show \
+                        --name "iac-prd-$(Build.BuildNumber)" \
+                        --query properties.provisioningState -o tsv 2>/dev/null || echo "NotFound")
+
+                      if [ "$STATE" = "Running" ]; then
+                        echo "Annuleren van lopende deployment..."
+                        az deployment sub cancel \
+                          --name "iac-prd-$(Build.BuildNumber)"
+                      else
+                        echo "Deployment status: $STATE — geen annulering nodig"
+                      fi
+
+                - script: |
+                    echo "=========================================="
+                    echo "ROLLBACK INSTRUCTIES:"
+                    echo "=========================================="
+                    echo "1. Voer git revert uit op de problematische commit:"
+                    echo "   git revert HEAD --no-edit"
+                    echo "   git push origin main"
+                    echo ""
+                    echo "2. Dit triggert automatisch een nieuwe pipeline run"
+                    echo "   die de vorige werkende staat herstelt."
+                    echo ""
+                    echo "3. Alternatief: corrigeer de Bicep-template en push."
+                    echo "=========================================="
+                  displayName: 'Toon rollback instructies'

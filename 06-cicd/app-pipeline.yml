@@ -1,0 +1,458 @@
+# app-pipeline.yml
+# Build, test en deploy .NET applicatie naar Azure App Service — Contoso Manufacturing
+# ASP.NET WebForms .NET Framework 4.8 | Windows build agent vereist
+# Triggered op changes aan applicatiecode (niet 05-bicep of docs)
+
+name: 'App Deploy — $(Date:yyyyMMdd)$(Rev:.r)'
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+      - 'feature/*'
+      - 'release/*'
+  paths:
+    exclude:
+      - '05-bicep/**'
+      - '06-cicd/**'
+      - '*.md'
+      - 'docs/**'
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+
+# ──────────────────────────────────────────────
+# Variable Groups (Azure DevOps Library)
+# ──────────────────────────────────────────────
+# contoso-common  : appName, dotnetVersion, buildConfiguration, projectPath, testProjectPath
+# contoso-dev     : webAppName (web-contoso-dev), resourceGroup, slotName
+# contoso-tst     : webAppName (web-contoso-tst), resourceGroup, slotName
+# contoso-prd     : webAppName (web-contoso-prd), resourceGroup, slotName
+# sonarcloud      : sonarProjectKey, sonarOrganization, sonarToken (Key Vault-linked)
+
+variables:
+  - group: contoso-common
+  - name: dotnetVersion
+    value: '8.x'
+  - name: buildConfiguration
+    value: 'Release'
+  - name: projectPath
+    value: 'src/Contoso.Web/Contoso.Web.csproj'
+  - name: testProjectPath
+    value: 'src/Contoso.Tests/Contoso.Tests.csproj'
+  - name: integrationTestProjectPath
+    value: 'src/Contoso.IntegrationTests/Contoso.IntegrationTests.csproj'
+
+# ──────────────────────────────────────────────
+# Stages
+# ──────────────────────────────────────────────
+
+stages:
+
+  # ────────── BUILD & UNIT TESTS ───────────────
+  - stage: Build
+    displayName: '🏗️ Build & Test'
+    jobs:
+      - job: BuildAndTest
+        displayName: 'Build, Unit Test & Publish'
+        pool:
+          # Windows vereist voor ASP.NET WebForms .NET Framework 4.8
+          vmImage: 'windows-latest'
+        steps:
+          - checkout: self
+            fetchDepth: 0   # Volledige history voor SonarCloud analyse
+
+          - task: UseDotNet@2
+            displayName: 'Install .NET $(dotnetVersion)'
+            inputs:
+              packageType: 'sdk'
+              version: $(dotnetVersion)
+
+          # ── SonarCloud SAST — voorbereiding ──────
+          # SonarCloud analyseert de broncode op beveiligingsproblemen,
+          # code smells en bugs. Geconfigureerd via contoso-sonarcloud variable group.
+          # Vereiste: SonarCloud service connection in Azure DevOps
+          #           Naam: sc-sonarcloud
+          - task: SonarCloudPrepare@2
+            displayName: 'SonarCloud — voorbereiding analyse'
+            inputs:
+              SonarCloud: 'sc-sonarcloud'
+              organization: '$(sonarOrganization)'
+              scannerMode: 'MSBuild'
+              projectKey: '$(sonarProjectKey)'
+              projectName: 'Contoso Manufacturing Web'
+              extraProperties: |
+                sonar.cs.opencover.reportsPaths=$(Agent.TempDirectory)/TestResults/**/coverage.opencover.xml
+                sonar.exclusions=**/obj/**,**/bin/**,**/*.Designer.cs
+                sonar.coverage.exclusions=**/*Tests*/**
+
+          - task: DotNetCoreCLI@2
+            displayName: 'dotnet restore'
+            inputs:
+              command: 'restore'
+              projects: '**/*.csproj'
+              feedsToUse: 'select'
+
+          - task: DotNetCoreCLI@2
+            displayName: 'dotnet build'
+            inputs:
+              command: 'build'
+              projects: $(projectPath)
+              arguments: '--configuration $(buildConfiguration) --no-restore'
+
+          - task: DotNetCoreCLI@2
+            displayName: 'dotnet test — unit tests + code coverage'
+            inputs:
+              command: 'test'
+              projects: $(testProjectPath)
+              arguments: >
+                --configuration $(buildConfiguration)
+                --no-build
+                --collect:"XPlat Code Coverage"
+                --results-directory $(Agent.TempDirectory)/TestResults
+                -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+              publishTestResults: true
+
+          - task: PublishCodeCoverageResults@2
+            displayName: 'Publiceer code coverage rapport'
+            inputs:
+              summaryFileLocation: '$(Agent.TempDirectory)/TestResults/**/*.xml'
+              failIfCoverageEmpty: false
+
+          # ── SonarCloud SAST — uitvoering ─────────
+          # Stuurt analyse naar SonarCloud na de build en tests.
+          # Resultaten zichtbaar via SonarCloud dashboard.
+          # Quality Gate: pipeline mislukt bij Critical/Blocker bevindingen.
+          - task: SonarCloudAnalyze@2
+            displayName: 'SonarCloud — uitvoer analyse'
+
+          - task: SonarCloudPublish@2
+            displayName: 'SonarCloud — publiceer Quality Gate resultaat'
+            inputs:
+              pollingTimeoutSec: '300'
+
+          # ── Dependency vulnerability scan ────────
+          # Controleert NuGet packages op bekende CVE's
+          # NIS2 Art. 21(2)(a) — risicoanalyse supply chain
+          - task: DotNetCoreCLI@2
+            displayName: 'NuGet vulnerability scan'
+            inputs:
+              command: 'custom'
+              custom: 'list'
+              arguments: 'package --vulnerable --include-transitive'
+            continueOnError: true   # Rapport, blokkeert niet automatisch
+
+          # ── Publiceer applicatie ─────────────────
+          - task: DotNetCoreCLI@2
+            displayName: 'dotnet publish'
+            inputs:
+              command: 'publish'
+              publishWebProjects: true
+              arguments: >
+                --configuration $(buildConfiguration)
+                --output $(Build.ArtifactStagingDirectory)/app
+              zipAfterPublish: true
+
+          - publish: '$(Build.ArtifactStagingDirectory)/app'
+            artifact: 'app-package'
+            displayName: 'Publiceer app artifact'
+
+  # ────────── SECURITY SCAN ─────────────────────
+  # DAST (Dynamic Application Security Testing) — apart van SonarCloud SAST
+  # Voert beveiligingsscans uit op de draaiende applicatie in TST
+  # OWASP ZAP: open-source DAST tool, detecteert XSS, SQLi, CSRF etc.
+  - stage: SecurityScan
+    displayName: '🔐 Security Scan (DAST)'
+    dependsOn: Build
+    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+    jobs:
+      - job: OWASP_ZAP
+        displayName: 'OWASP ZAP — Dynamic Security Scan'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - checkout: none
+
+          # OWASP ZAP Baseline scan — snel overzicht van beveiligingsproblemen
+          # Baseline scan: passief, geen actieve aanvallen, safe voor productie
+          # Full scan zou actieve tests uitvoeren (niet geschikt voor elke omgeving)
+          - task: owaspzap@0
+            displayName: 'OWASP ZAP Baseline Scan'
+            inputs:
+              # Scan tegen DEV-omgeving na deployment
+              targetUrl: 'https://web-contoso-dev.azurewebsites.net'
+              scanType: 'Baseline'
+              reportType: 'html'
+            continueOnError: true   # Rapport, blokkeert pipeline niet automatisch
+
+          - task: PublishBuildArtifacts@1
+            displayName: 'Publiceer ZAP beveiligingsrapport'
+            inputs:
+              PathtoPublish: '$(System.DefaultWorkingDirectory)'
+              ArtifactName: 'security-report'
+              publishLocation: 'Container'
+            condition: always()
+
+  # ────────── DEPLOY DEV ────────────────────────
+  - stage: Deploy_Dev
+    displayName: '🚀 Deploy — DEV'
+    dependsOn: Build
+    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+    variables:
+      - group: contoso-dev
+    jobs:
+      - deployment: DeployApp_Dev
+        displayName: 'Deploy App DEV'
+        pool:
+          vmImage: 'ubuntu-latest'
+        environment: 'dev'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: 'app-package'
+
+                - task: AzureWebApp@1
+                  displayName: 'Deploy naar App Service DEV'
+                  inputs:
+                    azureSubscription: 'sc-azure-dev'
+                    appType: 'webApp'
+                    appName: 'web-contoso-dev'
+                    package: '$(Pipeline.Workspace)/app-package/**/*.zip'
+                    deploymentMethod: 'zipDeploy'
+
+                # Smoke test na deployment
+                - script: |
+                    set -e
+                    echo "Smoke test DEV..."
+                    sleep 30   # Wacht op opstart
+                    STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                      https://web-contoso-dev.azurewebsites.net/health)
+                    echo "Health check status: $STATUS"
+                    if [ "$STATUS" != "200" ]; then
+                      echo "❌ Smoke test mislukt — status $STATUS"
+                      exit 1
+                    fi
+                    echo "✅ Smoke test geslaagd"
+                  displayName: 'Smoke test DEV (/health)'
+
+  # ────────── DEPLOY TST ────────────────────────
+  - stage: Deploy_Tst
+    displayName: '🧪 Deploy — TST'
+    dependsOn: Deploy_Dev
+    condition: >
+      and(
+        succeeded(),
+        in(variables['Build.SourceBranch'], 'refs/heads/develop', 'refs/heads/main')
+      )
+    variables:
+      - group: contoso-tst
+    jobs:
+      - deployment: DeployApp_Tst
+        displayName: 'Deploy App TST (staging → swap)'
+        pool:
+          vmImage: 'ubuntu-latest'
+        environment: 'tst'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: 'app-package'
+
+                # Deploy naar staging slot — production onaangetast
+                - task: AzureWebApp@1
+                  displayName: 'Deploy naar staging slot TST'
+                  inputs:
+                    azureSubscription: 'sc-azure-tst'
+                    appType: 'webApp'
+                    appName: 'web-contoso-tst'
+                    deployToSlotOrASE: true
+                    resourceGroupName: 'rg-contoso-tst-frontend'
+                    slotName: 'staging'
+                    package: '$(Pipeline.Workspace)/app-package/**/*.zip'
+                    deploymentMethod: 'zipDeploy'
+
+                # ── Integratietests op staging slot ──
+                # Voert end-to-end tests uit op de staging slot
+                # vóór de slot swap naar production
+                - task: DotNetCoreCLI@2
+                  displayName: 'Integratietests op staging slot TST'
+                  inputs:
+                    command: 'test'
+                    projects: $(integrationTestProjectPath)
+                    arguments: >
+                      --configuration $(buildConfiguration)
+                      --logger "trx;LogFileName=integration-tests.trx"
+                      --results-directory $(Agent.TempDirectory)/IntegrationTestResults
+                    publishTestResults: true
+                  env:
+                    # Staging slot URL als omgevingsvariabele voor integratietests
+                    TEST_BASE_URL: 'https://web-contoso-tst-staging.azurewebsites.net'
+                    TEST_ENVIRONMENT: 'tst'
+
+                # Health check op staging vóór swap
+                - script: |
+                    set -e
+                    echo "Health check staging slot TST..."
+                    sleep 30
+                    STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                      https://web-contoso-tst-staging.azurewebsites.net/health)
+                    echo "Health check status: $STATUS"
+                    if [ "$STATUS" != "200" ]; then
+                      echo "❌ Health check mislukt op staging — geen swap uitgevoerd"
+                      exit 1
+                    fi
+                    echo "✅ Health check geslaagd — swap uitvoeren"
+                  displayName: 'Health check staging slot TST'
+
+                # Swap staging → production (alleen na geslaagde tests)
+                - task: AzureAppServiceManage@0
+                  displayName: '🔄 Swap staging → production TST'
+                  inputs:
+                    azureSubscription: 'sc-azure-tst'
+                    Action: 'Swap Slots'
+                    WebAppName: 'web-contoso-tst'
+                    ResourceGroupName: 'rg-contoso-tst-frontend'
+                    SourceSlot: 'staging'
+
+                # Verificatie na swap
+                - script: |
+                    set -e
+                    echo "Verificatie na swap TST..."
+                    sleep 15
+                    STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                      https://web-contoso-tst.azurewebsites.net/health)
+                    if [ "$STATUS" != "200" ]; then
+                      echo "❌ Production health check mislukt na swap — status $STATUS"
+                      echo "Voer een manuele swap terug uit via Azure Portal of AzureAppServiceManage"
+                      exit 1
+                    fi
+                    echo "✅ TST production gezond na swap"
+                  displayName: 'Verificatie production TST na swap'
+
+  # ────────── DEPLOY PRD ────────────────────────
+  # Approval gate: bjorn.pacquet@contoso.be + Tech Lead (2 approvers)
+  # Geconfigureerd via: Pipelines → Environments → prd → Approvals and checks
+  - stage: Deploy_Prd
+    displayName: '🏭 Deploy — PRD'
+    dependsOn: Deploy_Tst
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    variables:
+      - group: contoso-prd
+    jobs:
+      - deployment: DeployApp_Prd
+        displayName: 'Deploy App PRD (staging → swap na approval)'
+        pool:
+          vmImage: 'ubuntu-latest'
+        environment: 'prd'   # Approval gate actief — wacht op 2 approvers
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: 'app-package'
+
+                # Deploy naar staging slot — production blijft draaiend
+                - task: AzureWebApp@1
+                  displayName: 'Deploy naar staging slot PRD'
+                  inputs:
+                    azureSubscription: 'sc-azure-prd'
+                    appType: 'webApp'
+                    appName: 'web-contoso-prd'
+                    deployToSlotOrASE: true
+                    resourceGroupName: 'rg-contoso-prd-frontend'
+                    slotName: 'staging'
+                    package: '$(Pipeline.Workspace)/app-package/**/*.zip'
+                    deploymentMethod: 'zipDeploy'
+
+                # Health check op staging vóór swap
+                - script: |
+                    set -e
+                    echo "Health check staging slot PRD..."
+                    sleep 30
+                    STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                      https://web-contoso-prd-staging.azurewebsites.net/health)
+                    echo "Health check status: $STATUS"
+                    if [ "$STATUS" != "200" ]; then
+                      echo "❌ Health check mislukt op PRD staging — GEEN swap uitgevoerd"
+                      echo "Production blijft op huidige versie"
+                      exit 1
+                    fi
+                    echo "✅ Staging slot PRD gezond — swap uitvoeren"
+                  displayName: 'Health check staging slot PRD'
+
+                # Swap staging → production
+                - task: AzureAppServiceManage@0
+                  displayName: '🔄 Swap staging → production PRD'
+                  inputs:
+                    azureSubscription: 'sc-azure-prd'
+                    Action: 'Swap Slots'
+                    WebAppName: 'web-contoso-prd'
+                    ResourceGroupName: 'rg-contoso-prd-frontend'
+                    SourceSlot: 'staging'
+
+                # Verificatie na swap
+                - script: |
+                    set -e
+                    echo "Verificatie production PRD na swap..."
+                    sleep 15
+                    STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                      https://web-contoso-prd.azurewebsites.net/health)
+                    if [ "$STATUS" != "200" ]; then
+                      echo "❌ Production health check mislukt na swap — status $STATUS"
+                      echo "Voer DIRECT een rollback swap uit (zie rollback stap hieronder)"
+                      exit 1
+                    fi
+                    echo "✅ PRD production gezond na swap"
+                    echo "Build: $(Build.BuildNumber) | Commit: $(Build.SourceVersion)"
+                  displayName: 'Verificatie production PRD na swap'
+
+  # ────────── ROLLBACK PRD ─────────────────────
+  # Wordt automatisch gestart als Deploy_Prd mislukt
+  # Swapt production terug naar de vorige versie (zit nog in staging slot)
+  - stage: Rollback_Prd
+    displayName: '⏪ Rollback — PRD (automatisch bij falen)'
+    dependsOn: Deploy_Prd
+    condition: failed()
+    variables:
+      - group: contoso-prd
+    jobs:
+      - deployment: RollbackApp_Prd
+        displayName: 'Rollback App PRD — swap terug'
+        pool:
+          vmImage: 'ubuntu-latest'
+        environment: 'prd'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureAppServiceManage@0
+                  displayName: '⏪ Swap production → staging (rollback)'
+                  inputs:
+                    azureSubscription: 'sc-azure-prd'
+                    Action: 'Swap Slots'
+                    WebAppName: 'web-contoso-prd'
+                    ResourceGroupName: 'rg-contoso-prd-frontend'
+                    SourceSlot: 'staging'
+
+                - script: |
+                    set -e
+                    echo "Verificatie na rollback..."
+                    sleep 15
+                    STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+                      https://web-contoso-prd.azurewebsites.net/health)
+                    echo "Production status na rollback: $STATUS"
+                    if [ "$STATUS" = "200" ]; then
+                      echo "✅ Rollback geslaagd — vorige versie actief"
+                    else
+                      echo "❌ Rollback ook mislukt — manuele interventie vereist!"
+                      echo "Contacteer: bjorn.pacquet@contoso.be"
+                      exit 1
+                    fi
+                  displayName: 'Verificeer rollback'
