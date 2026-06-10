@@ -6,7 +6,7 @@
 
 ---
 
-## ⚠️ Voor de beoordelaar — wat aanpassen voor gebruik
+##  wat aanpassen voor gebruik
 
 De YAML-pipelines zijn volledig uitgewerkt maar kunnen niet draaien zonder een Azure DevOps
 organisatie en Azure-subscripties. Onderstaande stappen beschrijven exact wat je moet
