@@ -1,576 +1,406 @@
-# 06 — ci/cd pipelines
+# 06-cicd — CI/CD Pipelines | Contoso Manufacturing
 
-> **Deliverable**: Azure DevOps YAML pipelines voor IaC en applicatie-deployment  
-> **Gewicht**: 10% van de totale eindopdrachtscore
-
----
-
-## opdracht
-
-Schrijf **twee CI/CD YAML-pipelines** voor de Contoso-omgeving:
-
-1. **IaC pipeline** (`iac-pipeline.yml`) — Deploy Bicep-templates naar Azure
-2. **App pipeline** (`app-pipeline.yml`) — Build, test en deploy de .NET-applicatie naar App Service
+> **Tooling:** Azure DevOps Pipelines (YAML)
+> **Omgevingen:** dev (auto) → tst (auto) → prd (manual, 2 approvers)
+> **Auteur:** bjorn.pacquet@contoso.be
 
 ---
 
-## pipeline overzicht
+## ⚠️ Voor de beoordelaar — wat aanpassen voor gebruik
 
-### omgevingen
+De YAML-pipelines zijn volledig uitgewerkt maar kunnen niet draaien zonder een Azure DevOps
+organisatie en Azure-subscripties. Onderstaande stappen beschrijven exact wat je moet
+instellen en aanpassen om de pipelines werkend te krijgen.
 
-| Omgeving | Branch | Auto-deploy? | Approval? |
+---
+
+### Stap 1 — Azure DevOps project aanmaken
+
+1. Ga naar [dev.azure.com](https://dev.azure.com) en log in
+2. Maak een nieuwe organisatie aan (of gebruik een bestaande)
+3. Maak een nieuw project aan:
+   - **Naam:** `contoso-manufacturing`
+   - **Visibility:** Private
+   - **Version control:** Git
+4. Importeer of push de broncode naar de Azure DevOps Git repository
+
+---
+
+### Stap 2 — Pipelines aanmaken
+
+Maak twee pipelines aan via **Pipelines → New pipeline → Azure Repos Git → Existing YAML file**:
+
+| Pipeline naam | YAML bestand | Beschrijving |
+|---|---|---|
+| `IaC Deploy — Contoso` | `06-cicd/iac-pipeline.yml` | Bicep infrastructure deployment |
+| `App Deploy — Contoso` | `06-cicd/app-pipeline.yml` | .NET applicatie build en deploy |
+
+---
+
+### Stap 3 — Service Connections aanmaken
+
+Ga naar **Project Settings → Service connections → New service connection**.
+
+Maak de volgende vier service connections aan via **Azure Resource Manager → Workload Identity federation (automatisch)** — dit is de aanbevolen methode zonder client secrets:
+
+| Naam in YAML | Type | Subscription scope | Aanmaken |
 |---|---|---|---|
-| `dev` | `feature/*`, `develop` | ✅ Ja | ❌ Nee |
-| `tst` | `develop`, `release/*` | ✅ Ja | ❌ Nee |
-| `prd` | `main` | ❌ Nee | ✅ Ja (2 approvers) |
+| `sc-azure-dev` | Azure Resource Manager | Dev subscription | Project Settings → Service connections → New → ARM → WIF |
+| `sc-azure-tst` | Azure Resource Manager | Tst subscription | idem |
+| `sc-azure-prd` | Azure Resource Manager | Prd subscription | idem |
+| `sc-sonarcloud` | SonarCloud | — | New → SonarCloud → Token uit sonarcloud.io |
 
-### service connections
+> **Belangrijk:** De namen in de service connections moeten exact overeenkomen met
+> de namen in de YAML-bestanden (`sc-azure-dev`, `sc-azure-tst`, `sc-azure-prd`, `sc-sonarcloud`).
+> Als je andere namen gebruikt, pas dan alle vermeldingen in beide YAML-bestanden aan.
 
-Documenteer welke Service Connections je nodig hebt in Azure DevOps:
+---
+
+### Stap 4 — Variable Groups aanmaken
+
+Ga naar **Pipelines → Library → + Variable group**.
+
+#### 4a. `contoso-common` — gedeelde waarden
+
+| Variabele | Waarde | Geheim? |
+|---|---|:---:|
+| `azureLocation` | `westeurope` | ❌ |
+| `appName` | `contoso` | ❌ |
+| `sonarOrganization` | jouw SonarCloud organisatienaam | ❌ |
+| `sonarProjectKey` | `contoso-manufacturing_web` | ❌ |
+
+#### 4b. `contoso-dev-secrets` / `contoso-tst-secrets` / `contoso-prd-secrets`
+
+Maak drie aparte variable groups aan — één per omgeving.
+Voeg de volgende variabelen toe als **geheime variabelen** (slotje-icoon aanklikken):
+
+| Variabele | Waarde | Geheim? |
+|---|---|:---:|
+| `sqlAdminPassword` | het SQL MI wachtwoord (zie Bicep stap 4) | ✅ |
+| `keyVaultAdminObjectId` | Entra ID groep Object ID (zie Bicep stap 3) | ✅ |
+| `aadAdminGroupObjectId` | zelfde als hierboven | ✅ |
+| `aadAdminGroupName` | `cloud-platform-engineers` (prd) / `contoso-developers` (dev) | ❌ |
+| `logAnalyticsWorkspaceId` | volledige resource ID van de LAW (zie Bicep stap 2) | ❌ |
+| `drServerName` | `sql-contoso-prd-dr-001` (enkel in prd-secrets) | ❌ |
+| `sonarToken` | token uit sonarcloud.io | ✅ |
+
+> **Tip:** Koppel de `*-secrets` groups aan Key Vault via **"Link secrets from an Azure key vault"**
+> zodra de Bicep-deployment is uitgerold. Dan hoef je de waarden niet handmatig in te voeren.
+
+#### 4c. `contoso-dev` / `contoso-tst` / `contoso-prd`
+
+| Variabele | dev | tst | prd |
+|---|---|---|---|
+| `webAppName` | `web-contoso-dev` | `web-contoso-tst` | `web-contoso-prd` |
+| `resourceGroup` | `rg-contoso-dev-frontend` | `rg-contoso-tst-frontend` | `rg-contoso-prd-frontend` |
+
+---
+
+### Stap 5 — Environments aanmaken
+
+Ga naar **Pipelines → Environments → New environment**.
+
+Maak drie environments aan:
+
+| Naam | Beschrijving | Approval? |
+|---|---|:---:|
+| `dev` | Development omgeving | ❌ |
+| `tst` | Test omgeving | ❌ |
+| `prd` | Productie omgeving | ✅ verplicht |
+
+#### Approval gate instellen op `prd`
+
+1. Open environment `prd` → klik **⋯ → Approvals and checks**
+2. Klik **+** → **Approvals** en configureer:
+
+```
+Approvers        : bjorn.pacquet@contoso.be  +  <naam tech lead>
+Minimum aantal   : 2
+Eigen run keuren : ❌ Nee
+Timeout          : 24 uur
+Instructies      : "Controleer TST-omgeving op https://web-contoso-tst.azurewebsites.net
+                    en bevestig akkoord voor productie-deployment."
+```
+
+3. Klik **+** → **Business hours** en configureer:
+
+```
+Tijdzone      : (UTC+01:00) Brussels, Copenhagen, Madrid, Paris
+Werkdagen     : maandag t/m vrijdag
+Werkuren      : 08:00 – 18:00
+```
+
+---
+
+### Stap 6 — App-namen aanpassen in de YAML-bestanden
+
+De YAML-bestanden gebruiken App Service namen gebaseerd op de Bicep naamgevingsconventie.
+Controleer dat deze namen overeenkomen met wat je Bicep aanmaakt:
+
+**In `app-pipeline.yml` — controleer/pas aan:**
+
+| Regel | Huidige waarde | Jouw waarde |
+|---|---|---|
+| Smoke test DEV | `web-contoso-dev.azurewebsites.net` | `web-contoso-dev.azurewebsites.net` ✅ |
+| App name DEV deploy | `web-contoso-dev` | `web-contoso-dev` ✅ |
+| Staging test TST | `web-contoso-tst-staging.azurewebsites.net` | `web-contoso-tst-staging.azurewebsites.net` ✅ |
+| App name TST deploy | `web-contoso-tst` | `web-contoso-tst` ✅ |
+| Staging test PRD | `web-contoso-prd-staging.azurewebsites.net` | `web-contoso-prd-staging.azurewebsites.net` ✅ |
+| App name PRD deploy | `web-contoso-prd` | `web-contoso-prd` ✅ |
+
+> Als je de `appName` of `environment` parameters in je Bicep-parameterbestanden
+> hebt gewijzigd, pas dan ook de App Service namen in de YAML aan.
+
+---
+
+### Stap 7 — Broncode aanvullen (twee onderdelen)
+
+#### 7a. Health check endpoint
+
+De pipelines controleren `/health` op elke omgeving na deployment.
+Voeg dit endpoint toe aan je ASP.NET WebForms applicatie:
+
+Maak een bestand `Health.aspx` aan in de root van je webproject:
+
+```aspx
+<%@ Page Language="C#" AutoEventWireup="true" CodeBehind="Health.aspx.cs" Inherits="Contoso.Web.Health" %>
+```
+
+En `Health.aspx.cs`:
+
+```csharp
+using System;
+using System.Web.UI;
+
+namespace Contoso.Web
+{
+    public partial class Health : Page
+    {
+        protected void Page_Load(object sender, EventArgs e)
+        {
+            // Optioneel: controleer database-connectiviteit
+            Response.StatusCode = 200;
+            Response.ContentType = "text/plain";
+            Response.Write("Healthy");
+            Response.End();
+        }
+    }
+}
+```
+
+#### 7b. Integratietest project
+
+De `app-pipeline.yml` verwijst naar `src/Contoso.IntegrationTests/Contoso.IntegrationTests.csproj`.
+
+**Optie A — project aanmaken:**
+```bash
+dotnet new mstest -n Contoso.IntegrationTests -o src/Contoso.IntegrationTests
+```
+
+**Optie B — pad aanpassen in YAML** als je een ander testproject hebt:
+```yaml
+# In app-pipeline.yml — regel ~20
+- name: integrationTestProjectPath
+  value: 'src/JouwBestaandTestProject/JouwProject.csproj'
+```
+
+---
+
+### Stap 8 — SonarCloud account aanmaken (SAST)
+
+1. Ga naar [sonarcloud.io](https://sonarcloud.io) en log in met je Azure DevOps account
+2. Maak een organisatie aan genaamd `contoso-manufacturing`
+3. Voeg het project toe: **+ Analyze new project → Azure DevOps → contoso-manufacturing**
+4. Kopieer de **Project Key** (bv. `contoso-manufacturing_web`)
+5. Genereer een **User Token** via My Account → Security → Generate Token
+6. Sla de token op in de variable group `contoso-common` als `sonarToken` (geheim)
+
+Vul de waarden in `contoso-common` aan:
+
+```
+sonarOrganization : contoso-manufacturing   (jouw SonarCloud organisatienaam)
+sonarProjectKey   : contoso-manufacturing_web
+```
+
+> **Geen SonarCloud account?** Commentarieer de drie SonarCloud taken tijdelijk uit
+> in `app-pipeline.yml` (regels `SonarCloudPrepare`, `SonarCloudAnalyze`, `SonarCloudPublish`).
+> De rest van de pipeline werkt dan nog steeds.
+
+---
+
+### Samenvatting — wat aanpassen
+
+| # | Actie | Waar | Bestanden aanpassen? |
+|---|---|---|:---:|
+| 1 | Azure DevOps project aanmaken | dev.azure.com | ❌ |
+| 2 | Twee pipelines aanmaken (IaC + App) | Pipelines → New pipeline | ❌ |
+| 3 | 4 service connections aanmaken | Project Settings → Service connections | ❌ |
+| 4 | 7 variable groups aanmaken en vullen | Pipelines → Library | ❌ |
+| 5 | 3 environments aanmaken + approval op prd | Pipelines → Environments | ❌ |
+| 6 | App-namen controleren (kloppen al) | `app-pipeline.yml` | Waarschijnlijk ❌ |
+| 7a | `/health` endpoint toevoegen aan broncode | `src/Contoso.Web/Health.aspx` | ✅ |
+| 7b | Integratietest project aanmaken of pad aanpassen | `app-pipeline.yml` regel ~20 | ✅ |
+| 8 | SonarCloud account + token | sonarcloud.io + variable group | ✅ |
+
+---
+
+## Bestanden
+
+```
+06-cicd/
+├── README.md           ← dit bestand
+├── iac-pipeline.yml    ← IaC pipeline: Bicep deployments
+└── app-pipeline.yml    ← App pipeline: build, test, deploy ASP.NET
+```
+
+---
+
+## Pipeline overzicht
+
+### Omgevingen en triggers
+
+| Omgeving | Branch | Auto-deploy | Approval |
+|---|---|:---:|:---:|
+| dev | `feature/*`, `develop`, `main` | ✅ | ❌ |
+| tst | `develop`, `main` | ✅ | ❌ |
+| prd | `main` | ❌ | ✅ 2 approvers |
+
+### Service Connections
+
+Alle service connections gebruiken **Workload Identity Federation (OIDC)** — geen client secrets opgeslagen in Azure DevOps.
 
 | Naam | Type | Scope | Gebruik |
 |---|---|---|---|
-| `sc-azure-dev` | Azure Resource Manager (Workload Identity) | Dev Subscription | IaC deploy dev |
-| `sc-azure-tst` | Azure Resource Manager (Workload Identity) | Tst Subscription | IaC deploy tst |
-| `sc-azure-prd` | Azure Resource Manager (Workload Identity) | Prd Subscription | IaC deploy prd |
-| `sc-acr` | Docker Registry (Azure Container Registry) | — | (optioneel, indien containers) |
-
-> 💡 Gebruik **Workload Identity Federation** (OIDC) voor service connections — geen geheimen opslaan!
+| `sc-azure-dev` | Azure Resource Manager (WIF) | Dev Subscription | IaC + App deploy dev |
+| `sc-azure-tst` | Azure Resource Manager (WIF) | Tst Subscription | IaC + App deploy tst |
+| `sc-azure-prd` | Azure Resource Manager (WIF) | Prd Subscription | IaC + App deploy prd |
+| `sc-sonarcloud` | SonarCloud | — | SAST analyse |
 
 ---
 
-## iac-pipeline.yml — starter
+## IaC Pipeline (iac-pipeline.yml)
 
-```yaml
-# iac-pipeline.yml
-# Deploys Bicep infrastructure to Azure
-# Triggered on changes to 05-bicep/**
+### Flow
 
-name: 'IaC Deploy — $(Date:yyyyMMdd)$(Rev:.r)'
-
-trigger:
-  branches:
-    include:
-      - main
-      - develop
-  paths:
-    include:
-      - '05-bicep/**'
-
-pr:
-  branches:
-    include:
-      - main
-      - develop
-  paths:
-    include:
-      - '05-bicep/**'
-
-# ──────────────────────────────────────────────
-# Variables
-# ──────────────────────────────────────────────
-
-variables:
-  bicepDirectory: '$(Build.SourcesDirectory)/05-bicep'
-  azureLocation: 'westeurope'
-
-# ──────────────────────────────────────────────
-# Stages
-# ──────────────────────────────────────────────
-
-stages:
-
-  # ────────── VALIDATE ──────────────────────────
-  - stage: Validate
-    displayName: '🔍 Validate Bicep'
-    jobs:
-      - job: Lint
-        displayName: 'Bicep Lint & Build'
-        pool:
-          vmImage: 'ubuntu-latest'
-        steps:
-          - checkout: self
-
-          - task: AzureCLI@2
-            displayName: 'Install Bicep CLI'
-            inputs:
-              azureSubscription: 'sc-azure-dev'
-              scriptType: bash
-              scriptLocation: inlineScript
-              inlineScript: |
-                az bicep upgrade
-                az bicep version
-
-          - task: AzureCLI@2
-            displayName: 'Bicep Lint'
-            inputs:
-              azureSubscription: 'sc-azure-dev'
-              scriptType: bash
-              scriptLocation: inlineScript
-              inlineScript: |
-                az bicep lint --file $(bicepDirectory)/main.bicep
-
-          - task: AzureCLI@2
-            displayName: 'Bicep Build (compile to ARM)'
-            inputs:
-              azureSubscription: 'sc-azure-dev'
-              scriptType: bash
-              scriptLocation: inlineScript
-              inlineScript: |
-                az bicep build --file $(bicepDirectory)/main.bicep \
-                  --outdir $(Build.ArtifactStagingDirectory)
-
-          - publish: '$(Build.ArtifactStagingDirectory)'
-            artifact: 'bicep-arm'
-            displayName: 'Publish ARM artifact'
-
-      - job: WhatIf_Dev
-        displayName: 'What-If: DEV'
-        dependsOn: Lint
-        pool:
-          vmImage: 'ubuntu-latest'
-        steps:
-          - checkout: self
-
-          - task: AzureCLI@2
-            displayName: 'az deployment sub what-if (dev)'
-            inputs:
-              azureSubscription: 'sc-azure-dev'
-              scriptType: bash
-              scriptLocation: inlineScript
-              inlineScript: |
-                az deployment sub what-if \
-                  --location $(azureLocation) \
-                  --template-file $(bicepDirectory)/main.bicep \
-                  --parameters $(bicepDirectory)/main.dev.bicepparam \
-                  --result-format FullResourcePayloads
-
-  # ────────── DEPLOY DEV ────────────────────────
-  - stage: Deploy_Dev
-    displayName: '🚀 Deploy — DEV'
-    dependsOn: Validate
-    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-    variables:
-      environment: 'dev'
-    jobs:
-      - deployment: DeployInfra_Dev
-        displayName: 'Deploy Infrastructure to DEV'
-        pool:
-          vmImage: 'ubuntu-latest'
-        environment: 'dev'              # Azure DevOps Environment (geen approval)
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - checkout: self
-
-                - task: AzureCLI@2
-                  displayName: 'Deploy Bicep to DEV'
-                  inputs:
-                    azureSubscription: 'sc-azure-dev'
-                    scriptType: bash
-                    scriptLocation: inlineScript
-                    inlineScript: |
-                      az deployment sub create \
-                        --name "iac-$(Build.BuildNumber)" \
-                        --location $(azureLocation) \
-                        --template-file $(bicepDirectory)/main.bicep \
-                        --parameters $(bicepDirectory)/main.dev.bicepparam \
-                        --parameters environment='dev'
-
-  # ────────── DEPLOY TST ────────────────────────
-  - stage: Deploy_Tst
-    displayName: '🧪 Deploy — TST'
-    dependsOn: Deploy_Dev
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
-    variables:
-      environment: 'tst'
-    jobs:
-      - deployment: DeployInfra_Tst
-        displayName: 'Deploy Infrastructure to TST'
-        pool:
-          vmImage: 'ubuntu-latest'
-        environment: 'tst'
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - checkout: self
-
-                - task: AzureCLI@2
-                  displayName: 'Deploy Bicep to TST'
-                  inputs:
-                    azureSubscription: 'sc-azure-tst'
-                    scriptType: bash
-                    scriptLocation: inlineScript
-                    inlineScript: |
-                      az deployment sub create \
-                        --name "iac-$(Build.BuildNumber)" \
-                        --location $(azureLocation) \
-                        --template-file $(bicepDirectory)/main.bicep \
-                        --parameters environment='tst'
-
-  # ────────── DEPLOY PRD ────────────────────────
-  - stage: Deploy_Prd
-    displayName: '🏭 Deploy — PRD'
-    dependsOn: Deploy_Tst
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
-    variables:
-      environment: 'prd'
-    jobs:
-      - deployment: DeployInfra_Prd
-        displayName: 'Deploy Infrastructure to PRD'
-        pool:
-          vmImage: 'ubuntu-latest'
-        environment: 'prd'             # Azure DevOps Environment MET approval gate!
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - checkout: self
-
-                - task: AzureCLI@2
-                  displayName: 'Deploy Bicep to PRD'
-                  inputs:
-                    azureSubscription: 'sc-azure-prd'
-                    scriptType: bash
-                    scriptLocation: inlineScript
-                    inlineScript: |
-                      az deployment sub create \
-                        --name "iac-$(Build.BuildNumber)" \
-                        --location $(azureLocation) \
-                        --template-file $(bicepDirectory)/main.bicep \
-                        --parameters $(bicepDirectory)/main.bicepparam \
-                        --parameters environment='prd'
+```
+Validate
+  ├── Lint (alle .bicep bestanden)
+  ├── Build (compileren naar ARM JSON)
+  ├── What-If DEV
+  └── What-If TST
+      │
+      ▼
+Deploy DEV (auto — alle branches)
+      │
+      ▼ (alleen develop/main)
+Deploy TST (auto)
+      │
+      ▼ (alleen main + 2 approvers)
+Deploy PRD
+      │ (bij falen)
+      ▼
+Rollback PRD (annuleer deployment + instructies)
 ```
 
+### Keuzes en onderbouwing
+
+**What-If vóór elke deployment** — De `az deployment sub what-if` stap toont exact welke resources worden aangemaakt, gewijzigd of verwijderd. Approvers kunnen dit rapport reviewen vóór de PRD-deployment.
+
+**Secrets via variable groups + Key Vault** — Geen plaintext secrets in YAML. Alle gevoelige waarden komen uit Key Vault via de Library Key Vault link.
+
+**Finale What-If in PRD deploy stap** — Net voor de effectieve deployment wordt nogmaals een What-If uitgevoerd zodat de approver de exacte wijzigingen ziet.
+
 ---
 
-## app-pipeline.yml — starter
+## App Pipeline (app-pipeline.yml)
 
-```yaml
-# app-pipeline.yml
-# Build, test en deploy .NET applicatie naar Azure App Service
-# Triggered op changes aan de applicatiecode
+### Flow
 
-name: 'App Deploy — $(Date:yyyyMMdd)$(Rev:.r)'
-
-trigger:
-  branches:
-    include:
-      - main
-      - develop
-      - 'feature/*'
-  paths:
-    exclude:
-      - '05-bicep/**'
-      - '*.md'
-
-pr:
-  branches:
-    include:
-      - main
-      - develop
-
-# ──────────────────────────────────────────────
-# Variables
-# ──────────────────────────────────────────────
-
-variables:
-  dotnetVersion: '8.x'
-  buildConfiguration: 'Release'
-  projectPath: 'src/Contoso.Web/Contoso.Web.csproj'
-  testProjectPath: 'src/Contoso.Tests/Contoso.Tests.csproj'
-
-# ──────────────────────────────────────────────
-# Stages
-# ──────────────────────────────────────────────
-
-stages:
-
-  # ────────── BUILD & TEST ──────────────────────
-  - stage: Build
-    displayName: '🏗️ Build & Test'
-    jobs:
-      - job: BuildAndTest
-        displayName: 'Build, Unit Test & Publish'
-        pool:
-          vmImage: 'windows-latest'       # Windows voor ASP.NET WebForms
-        steps:
-          - checkout: self
-
-          - task: UseDotNet@2
-            displayName: 'Install .NET $(dotnetVersion)'
-            inputs:
-              packageType: 'sdk'
-              version: $(dotnetVersion)
-
-          - task: DotNetCoreCLI@2
-            displayName: 'dotnet restore'
-            inputs:
-              command: 'restore'
-              projects: '**/*.csproj'
-
-          - task: DotNetCoreCLI@2
-            displayName: 'dotnet build'
-            inputs:
-              command: 'build'
-              projects: $(projectPath)
-              arguments: '--configuration $(buildConfiguration) --no-restore'
-
-          - task: DotNetCoreCLI@2
-            displayName: 'dotnet test (unit tests)'
-            inputs:
-              command: 'test'
-              projects: $(testProjectPath)
-              arguments: >
-                --configuration $(buildConfiguration)
-                --no-build
-                --collect:"XPlat Code Coverage"
-                --results-directory $(Agent.TempDirectory)/TestResults
-              publishTestResults: true
-
-          - task: PublishCodeCoverageResults@2
-            displayName: 'Publish code coverage'
-            inputs:
-              summaryFileLocation: '$(Agent.TempDirectory)/TestResults/**/*.xml'
-
-          - task: DotNetCoreCLI@2
-            displayName: 'dotnet publish'
-            inputs:
-              command: 'publish'
-              publishWebProjects: true
-              arguments: >
-                --configuration $(buildConfiguration)
-                --output $(Build.ArtifactStagingDirectory)/app
-
-          - publish: '$(Build.ArtifactStagingDirectory)/app'
-            artifact: 'app-package'
-            displayName: 'Publish app artifact'
-
-  # ────────── SECURITY SCAN ─────────────────────
-  - stage: SecurityScan
-    displayName: '🔐 Security Scan'
-    dependsOn: Build
-    jobs:
-      - job: SAST
-        displayName: 'Static Application Security Testing'
-        pool:
-          vmImage: 'ubuntu-latest'
-        steps:
-          # TODO: Voeg SAST tool toe (bijv. SonarCloud, Checkmarx, of GitHub Advanced Security)
-          - script: echo "SAST scan placeholder — implementeer SonarCloud of vergelijkbaar"
-            displayName: 'SAST Scan'
-
-          # Dependency vulnerability scan
-          - task: DotNetCoreCLI@2
-            displayName: 'dotnet list vulnerable packages'
-            inputs:
-              command: 'custom'
-              custom: 'list'
-              arguments: 'package --vulnerable --include-transitive'
-
-  # ────────── DEPLOY DEV ────────────────────────
-  - stage: Deploy_Dev
-    displayName: '🚀 Deploy — DEV'
-    dependsOn:
-      - Build
-      - SecurityScan
-    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
-    jobs:
-      - deployment: DeployApp_Dev
-        displayName: 'Deploy App to DEV'
-        pool:
-          vmImage: 'ubuntu-latest'
-        environment: 'dev'
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - download: current
-                  artifact: 'app-package'
-
-                - task: AzureWebApp@1
-                  displayName: 'Deploy to App Service DEV'
-                  inputs:
-                    azureSubscription: 'sc-azure-dev'
-                    appType: 'webApp'
-                    appName: 'app-contoso-dev-web'
-                    package: '$(Pipeline.Workspace)/app-package/**/*.zip'
-                    deploymentMethod: 'zipDeploy'
-
-  # ────────── DEPLOY TST ────────────────────────
-  - stage: Deploy_Tst
-    displayName: '🧪 Deploy — TST'
-    dependsOn: Deploy_Dev
-    condition: >
-      and(
-        succeeded(),
-        in(variables['Build.SourceBranch'], 'refs/heads/develop', 'refs/heads/main')
-      )
-    jobs:
-      - deployment: DeployApp_Tst
-        displayName: 'Deploy App to TST'
-        pool:
-          vmImage: 'ubuntu-latest'
-        environment: 'tst'
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - download: current
-                  artifact: 'app-package'
-
-                - task: AzureWebApp@1
-                  displayName: 'Deploy to App Service TST (staging slot)'
-                  inputs:
-                    azureSubscription: 'sc-azure-tst'
-                    appType: 'webApp'
-                    appName: 'app-contoso-tst-web'
-                    deployToSlotOrASE: true
-                    resourceGroupName: 'rg-contoso-tst-frontend'
-                    slotName: 'staging'
-                    package: '$(Pipeline.Workspace)/app-package/**/*.zip'
-
-                # TODO: Voeg integratietests toe na staging deployment
-
-                - task: AzureAppServiceManage@0
-                  displayName: 'Swap staging → production (TST)'
-                  inputs:
-                    azureSubscription: 'sc-azure-tst'
-                    Action: 'Swap Slots'
-                    WebAppName: 'app-contoso-tst-web'
-                    ResourceGroupName: 'rg-contoso-tst-frontend'
-                    SourceSlot: 'staging'
-
-  # ────────── DEPLOY PRD ────────────────────────
-  - stage: Deploy_Prd
-    displayName: '🏭 Deploy — PRD'
-    dependsOn: Deploy_Tst
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
-    jobs:
-      - deployment: DeployApp_Prd
-        displayName: 'Deploy App to PRD'
-        pool:
-          vmImage: 'ubuntu-latest'
-        environment: 'prd'             # Approval gate geconfigureerd in Azure DevOps!
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - download: current
-                  artifact: 'app-package'
-
-                - task: AzureWebApp@1
-                  displayName: 'Deploy to App Service PRD (staging slot)'
-                  inputs:
-                    azureSubscription: 'sc-azure-prd'
-                    appType: 'webApp'
-                    appName: 'app-contoso-prd-web'
-                    deployToSlotOrASE: true
-                    resourceGroupName: 'rg-contoso-prd-frontend'
-                    slotName: 'staging'
-                    package: '$(Pipeline.Workspace)/app-package/**/*.zip'
-
-                # Health check op staging slot vóór swap
-                - script: |
-                    echo "Running smoke tests on staging slot..."
-                    statusCode=$(curl -s -o /dev/null -w "%{http_code}" \
-                      https://app-contoso-prd-web-staging.azurewebsites.net/health)
-                    if [ "$statusCode" != "200" ]; then
-                      echo "Health check failed! Status: $statusCode"
-                      exit 1
-                    fi
-                    echo "Health check passed!"
-                  displayName: 'Health check staging slot'
-
-                - task: AzureAppServiceManage@0
-                  displayName: '🔄 Swap staging → production (PRD)'
-                  inputs:
-                    azureSubscription: 'sc-azure-prd'
-                    Action: 'Swap Slots'
-                    WebAppName: 'app-contoso-prd-web'
-                    ResourceGroupName: 'rg-contoso-prd-frontend'
-                    SourceSlot: 'staging'
+```
+Build
+  ├── SonarCloud Prepare (SAST)
+  ├── dotnet restore / build
+  ├── Unit tests + code coverage
+  ├── SonarCloud Analyze + Quality Gate
+  ├── NuGet vulnerability scan
+  └── dotnet publish → artifact
+      │
+      ├── SecurityScan (OWASP ZAP DAST — parallel)
+      │
+      ▼
+Deploy DEV (auto)
+  └── Smoke test /health
+      │
+      ▼ (develop/main)
+Deploy TST
+  ├── Deploy naar staging slot
+  ├── Integratietests op staging
+  ├── Health check staging
+  ├── Swap staging → production
+  └── Verificatie production
+      │
+      ▼ (main + 2 approvers)
+Deploy PRD
+  ├── Deploy naar staging slot
+  ├── Health check staging
+  ├── Swap staging → production
+  └── Verificatie production
+      │ (bij falen)
+      ▼
+Rollback PRD
+  ├── Swap production → staging (terug)
+  └── Verificatie rollback
 ```
 
+### Keuzes en onderbouwing
+
+**SonarCloud als SAST-tool** — Geïntegreerd via `SonarCloudPrepare`, `SonarCloudAnalyze` en `SonarCloudPublish` tasks. Quality Gate blokkeert bij Critical/Blocker bevindingen.
+
+**OWASP ZAP als DAST-tool** — Baseline scan op de DEV-omgeving na deployment. Passieve scan — geen actieve aanvallen.
+
+**Staging slot strategie** — In TST en PRD wordt altijd naar de staging slot gedeployed. Production blijft draaiend op de vorige versie tot na een geslaagde health check.
+
+**Windows build agent** — `windows-latest` is verplicht voor ASP.NET WebForms op .NET Framework 4.8.
+
 ---
 
-## opdrachttaken
+## Rollback strategie
 
-Vul de starter pipelines aan en documenteer je keuzes:
+### App Service rollback
 
-| Taak | Beschrijving | Status |
+| Scenario | Actie | Tijd |
 |---|---|---|
-| `iac-pipeline.yml` | IaC pipeline starter aanwezig | ✅ Gegeven |
-| `app-pipeline.yml` | App pipeline starter aanwezig | ✅ Gegeven |
-| SAST scan | Voeg een echte SAST-tool toe (SonarCloud/Checkmarx) | ❌ Jij |
-| Integratietests | Voeg integratietests toe na TST-deployment | ❌ Jij |
-| Rollback mechanisme | Documenteer hoe je terugdraait bij falen in PRD | ❌ Jij |
-| Variable groups | Vervang hardcoded namen door Azure DevOps variable groups | ❌ Jij |
-| Approvers configuratie | Documenteer wie de PRD approval gates beheert | ❌ Jij |
+| Health check mislukt op staging | Swap wordt **niet** uitgevoerd — production onaangetast | Direct |
+| Probleem ontdekt na swap in PRD | `Rollback_Prd` stage swapt automatisch terug | < 2 min |
+| Rollback_Prd ook mislukt | Manuele swap via CLI (zie commando) | Direct |
 
----
-
-## approval gate configuratie
-
-Documenteer hoe je de **approval gate voor productie** instelt in Azure DevOps:
-
-1. Ga in Azure DevOps naar **Pipelines → Environments → prd**
-2. Klik op "Approvals and checks"
-3. Voeg een "Approvals" check toe met:
-   - Minimaal **2 approvers** (bijv. Tech Lead + Product Owner)
-   - Timeout: **24 uur**
-   - Instructies voor approver: "Controleer de TST-omgeving voor akkoord"
-4. Voeg optioneel een "Business hours" check toe (deployments enkel tijdens kantooruren)
-
----
-
-## rollback strategie
-
-Documenteer je rollback-strategie voor beide pipelines:
+```bash
+# Manuele rollback via CLI
+az webapp deployment slot swap \
+  --resource-group rg-contoso-prd-frontend \
+  --name web-contoso-prd \
+  --slot staging \
+  --target-slot production
+```
 
 ### IaC rollback
 
 | Scenario | Actie |
 |---|---|
-| Bicep deployment mislukt | `az deployment sub cancel` → corrigeer template → herdeployeer |
-| Resource in fout staat | `az resource delete` indien idempotent, of handmatige correctie |
-| Volledige rollback vereist | Gebruik Git revert → trigger pipeline opnieuw |
+| Bicep deployment mislukt | `az deployment sub cancel --name <naam>` → corrigeer → herdeployeer |
+| Volledige rollback vereist | `git revert HEAD --no-edit && git push` → pipeline herstart |
 
-### Applicatie rollback
+---
 
-| Scenario | Actie |
+## NIS2 compliance
+
+| NIS2 Art. | Maatregel in CI/CD |
 |---|---|
-| Health check mislukt op staging | Slot swap wordt NIET uitgevoerd — production onaangetast |
-| Probleem ontdekt na swap | Swap staging ↔ production terug (vorige versie zit nog in staging slot) |
-| Critieke bug in productie | Voer `AzureAppServiceManage` swap terug uit via pipeline of manueel |
+| Art. 21(2)(a) risicoanalyse | NuGet vulnerability scan + OWASP ZAP DAST |
+| Art. 21(2)(b) monitoring | SonarCloud Quality Gate + health checks |
+| Art. 21(2)(e) toegangscontrole | WIF service connections (geen secrets) + 2 approvers PRD |
+| Art. 21(2)(h) cryptografie | HTTPS-only health checks + TLS 1.2 op alle endpoints |
 
 ---
 
-## wat je inlevert
-
-```
-06-cicd/
-├── README.md          ← dit bestand, volledig ingevuld + opdrachttaken afgewerkt
-├── iac-pipeline.yml   ← volledig uitgewerkte IaC pipeline
-└── app-pipeline.yml   ← volledig uitgewerkte app pipeline
-```
-
----
-
-## beoordelingscriteria (10 punten)
-
-| Criterium | Punten |
-|---|---|
-| IaC pipeline: validate → deploy per omgeving | 3 |
-| App pipeline: build → test → deploy per omgeving | 3 |
-| Approval gate voor productie aanwezig + gedocumenteerd | 2 |
-| Rollback strategie gedocumenteerd | 1 |
-| Security scan stap aanwezig (SAST/dependency) | 1 |
-
----
-
-_Terug naar [`../README.md`](../README.md) voor het overzicht_
-
----
+*Versie 1.0 · bjorn.pacquet@contoso.be · West Europe 2025 · INTERN*
