@@ -75,14 +75,12 @@ Vul in: Welke kies jij voor Contoso? Motiveer.
 # ADR-003: Connectiviteit — VPN Gateway
 
 ## Beslissing
-Hier kies ik voor een Azure VPN Gateway VpnGw1 als primaire connectiviteit tussen on-premises locaties en Azure.
+Hier kies ik voor een Azure VPN Gateway VpnGw2 als primaire connectiviteit tussen on-premises locaties en Azure.
 
 ## Motivatie
-De huidige workload draait vooral op Azure PaaS-diensten zoals App Service, SQL Managed Instance en Storage. 
-Hierdoor blijft het meeste netwerkverkeer binnen Azure en is een zware dedicated verbinding niet nodig.
-
-VPN Gateway VpnGw1 biedt voldoende bandbreedte en beschikbaarheid voor beheer, AD-replicatie en koppelingen met bestaande systemen.
-
+De omgeving bevat drie vestigingen, een hybride identiteitsarchitectuur, SAP-integraties en een SQL Managed Instance.
+Hoewel het grootste deel van de workload bestaat uit Azure PaaS-diensten, is een betrouwbare verbinding met de on-premises omgeving noodzakelijk.
+VpnGw2 biedt voldoende capaciteit, redundantie en schaalbaarheid voor de huidige omgeving, terwijl de kost aanzienlijk lager blijft dan ExpressRoute.
 Daarnaast is deze oplossing veel goedkoper dan ExpressRoute.
 
 ## Alternatieven
