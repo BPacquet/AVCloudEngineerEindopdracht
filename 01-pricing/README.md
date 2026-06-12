@@ -271,10 +271,10 @@ Alle 31 resources uit de Platform Landing Zone en Application Platform. Prijzen 
 | Key Vault Standard — Workload | Secrets · certs · soft-delete · PE | € 1 | € 12 |
 | Key Vault Standard — Platform | TLS-certs · platform secrets | € 4 | € 48 |
 | Managed Identity | System-assigned · App + Functions | € 0 | € 0 |
-| Microsoft Defender for Cloud | Servers P2 · SQL MI · Storage · App Svc | € 55 | € 660 |
+| Microsoft Defender for Cloud | Servers P2 · SQL MI · Storage · App Svc | € 125 | € 1500 |
 | PIM — Just-in-Time Access | Inbegrepen in Entra ID P1 | € 0 | € 0 |
 | Conditional Access | Inbegrepen in Entra ID P1 | € 0 | € 0 |
-| **Subtotaal Security** | | **€ 60** | **€ 720** |
+| **Subtotaal Security** | | **€ 130** | **€ 1560** |
 
 ### Monitoring
 
@@ -307,10 +307,10 @@ Alle 31 resources uit de Platform Landing Zone en Application Platform. Prijzen 
 | Database | € 2.912 | 29,6% |
 | Storage | € 118 | 1,2% |
 | Identiteit | € 2.700 | 27,4% |
-| Security | € 60 | 0,6% |
+| Security | € 130 | 0,6% |
 | Monitoring | € 575 | 5,8% |
 | Integratie | € 9 | 0,1% |
-| **Subtotaal Prod** | **€ 9.484** | |
+| **Subtotaal Prod** | **€ 9.614** | |
 
 ### NonProd (Contoso-NonProd subscriptie — Dev/Test pricing)
 
