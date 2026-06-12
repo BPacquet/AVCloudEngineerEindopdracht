@@ -419,7 +419,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2023-03-01' = {
 
 ### 5.2 Reserved Instances (RI) — commitment-korting
 
-Door 1 jaar vooruit te betalen voor de grootste resources vermijdt Contoso PAYG-meerkosten van ~€2.900/jaar.
+Door Reserved Instances te gebruiken kan Contoso ongeveer €17.785 per jaar besparen ten opzichte van PAYG.
 
 | Resource | PAYG/mnd | RI korting | Na RI/mnd | Jaarlijkse besparing |
 |---|---:|:---:|---:|---:|
@@ -445,12 +445,13 @@ App Service schaalt automatisch van 2 naar 6 instanties op basis van CPU-gebruik
 }
 ```
 
-**Kostenbesparing auto-scale:** buiten kantooruren (16u/24u) draaien slechts 2 instanties. Bij 4 gemiddeld piek-uur/dag besparing van ~€308/mnd t.o.v. altijd 4 instanties draaien.
+**Kostenbesparing auto-scale:** buiten kantooruren (16u/24u) draaien slechts 2 instanties. 
+Geschatte besparing tussen €250 en €350 per maand afhankelijk van het werkelijke gebruikspatroon.
 
 ### 5.4 Dev/Test pricing — NonProd
 
 Via een Dev/Test-subscriptie betaalt Contoso tot 55% minder voor NonProd-resources:
-
+Voor NonProd werd bewust gekozen voor kleinere SKU's omdat de omgeving enkel gebruikt wordt voor ontwikkeling en testen.
 | Resource | Prod (PAYG) | NonProd (Dev/Test) | Besparing |
 |---|---:|---:|---:|
 | App Service (web + api) | € 1.234/mnd | € 12/mnd | € 1.222/mnd |
@@ -509,7 +510,7 @@ Onderstaande onzekerheden kunnen de werkelijke kosten doen afwijken van de insch
 | Egress 1 TB/mnd i.p.v. 500 GB | € 6.150 | +€ 43/mnd |
 | DDoS Standard toegevoegd | € 9.051 | +€ 2.944/mnd |
 | SQL MI upgrade naar Business Critical | € 7.907 | +€ 1.800/mnd |
-| **Worst case (alle risico's tegelijk)** | **~€ 14.000** | **+€ 7.893/mnd** |
+| **Worst case (alle risico's tegelijk)** | **~€ 12.600** | **+€ 6.500/mnd** |
 
 ---
 
