@@ -171,111 +171,45 @@ De Contoso-applicatie wordt gemigreerd naar de volgende Azure PaaS-diensten:
 
 
 
-┌─────────────────────────────────────────────────────────────────┐
-│  Contoso-Prod Subscription  (Spoke VNet: 10.20.0.0/16)         │
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │  Resource Group: rg-contoso-networking                   │   │
-│  │  VNet Peering ──► Hub VNet (Connectivity Subscription)   │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │  Resource Group: rg-contoso-frontend                     │   │
-│  │                                                          │   │
-│  │  [App Gateway + WAF v2]                                  │   │
-│  │         │                                                │   │
-│  │  [App Service Plan P2v3]                                 │   │
-│  │    ├── [App Service: web-contoso-prd]                    │   │
-│  │    └── [App Service: api-contoso-prd]                    │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │  Resource Group: rg-contoso-compute                      │   │
-│  │                                                          │   │
-│  │  [Function App / WebJobs]                                │   │
-│  │    ├── Scheduler Function                                │   │
-│  │    ├── Processor Function                                │   │
-│  │    └── Reporter Function                                 │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │  Resource Group: rg-contoso-data                         │   │
-│  │                                                          │   │
-│  │  [Azure SQL DB: Business Critical]                       │   │
-│  │    └── Geo-replication ──► North Europe                  │   │
-│  │  [Azure Storage Account] (Blob + Files)                  │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │  Resource Group: rg-contoso-security                     │   │
-│  │                                                          │   │
-│  │  [Key Vault]   [Managed Identity]   [Defender for Cloud] │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │  Resource Group: rg-contoso-monitoring                   │   │
-│  │                                                          │   │
-│  │  [Application Insights]  [Log Analytics Workspace]       │   │
-│  └──────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
+Contoso-Prod Subscription (Spoke VNet: 10.20.0.0/16)
+
+rg-contoso-networking
+  VNet Peering → Hub VNet
+  Application Gateway WAF v2
+  NSGs · UDRs · Private DNS Zones
+  Private Endpoints (10.20.3.4 t/m .8)
+
+rg-contoso-app
+  App Service Plan P2v3 (Windows)
+  ├── web-contoso-prd (ASP.NET WebForms .NET 4.8)
+  ├── api-contoso-prd (ASP.NET WebForms .NET 4.8)
+  └── fn-contoso-prd-001 (Azure Functions Consumption)
+
+rg-contoso-data
+  SQL Managed Instance GP 8vCore
+  └── Auto-failover group → North Europe
+  Storage Account ZRS (stcontoso001)
+  Service Bus Standard (sb-contoso-prd)
+
+rg-contoso-security
+  Key Vault Standard (kv-contoso-prd)
+  Managed Identity (mi-contoso-prd-app)
+
+rg-contoso-monitoring
+  Log Analytics Workspace
+  Application Insights
+  Defender for Cloud
 
 
 ### diagram vereisten (Application LZ)
 
-Gebruik de officiële Azure-architectuuricoontjes. Neem minimaal op:
-
-- [ ] Application Gateway + WAF v2
-- [ ] App Service Plan + App Services (min. 2 slots: production + staging)
-- [ ] Azure Functions of WebJobs
-- [ ] Azure SQL Database + geo-replication pijl
-- [ ] Azure Storage Account
-- [ ] Key Vault (met pijlen naar App Services voor secret ophalen)
-- [ ] Managed Identity (User Assigned of System Assigned)
-- [ ] Private Endpoints voor SQL, Storage, Key Vault
-- [ ] Application Insights
-- [ ] Verbinding naar Hub via VNet Peering
-- [ ] Verbinding naar on-prem (via Hub — VPN/ER)
-- [ ] Deployment slots (staging ↔ production swap)
-
----
+Zie application lz in bijlages
 
 ## architectuurbeslissingen (Architecture Decision Records)
 
 Voor de volgende keuzes schrijf je een korte **ADR (Architecture Decision Record)**:
 
-### ADR-001: App Service vs AKS vs Azure Container Apps
-
-| | App Service | AKS | Container Apps |
-|---|---|---|---|
-| Complexiteit | Laag | Hoog | Middel |
-| Beheer overhead | Minimaal | Hoog | Laag |
-| Kost | Middel | Hoog | Laag-Middel |
-| Geschikt voor WebForms migratie | ✅ | ⚠️ | ⚠️ |
-
-**Vul in**: Welke kies jij en waarom?
-
-### ADR-002: Azure SQL DB tier keuze
-
-| Tier | vCores | Beschikbaarheid | Prijs |
-|---|---|---|---|
-| General Purpose | 4–80 | 99.99% (zone redundant) | € |
-| Business Critical | 4–80 | 99.995% + read replica inbegrepen | €€€ |
-| Hyperscale | 1–80 | Hoog, andere architectuur | €€ |
-
-**Vul in**: Welke tier kies jij? Onderbouw met de RTO/RPO-vereisten.
-
-### ADR-003: VPN Gateway vs ExpressRoute
-
-| | VPN Gateway | ExpressRoute |
-|---|---|---|
-| Bandbreedte | Tot 1 Gbps | 50 Mbps – 100 Gbps |
-| Latency | Variabel (internet) | Laag (dedicated circuit) |
-| Kost | Laag (€200-300/mnd) | Hoog (€500–€5000+/mnd) |
-| Gebruik | Dev/test, lagere eisen | Productie, hoge eisen |
-
-**Vul in**: Welke kies jij voor Contoso? Motiveer.
-
----
+Zie adr bestand in bijlages
 
 ## Azure Well-Architected Framework check
 
@@ -284,11 +218,11 @@ Documenteer hoe je ontwerp scoort op de 5 pijlers van het Azure Well-Architected
 | Pijler | Hoe wordt dit geadresseerd in je ontwerp? |
 |---|---|
 | **Reliability** | 
-De omgeving is ontworpen zonder enkelvoudige storingspunten. SQL Managed Instance faalt automatisch over naar een geo-replica in North Europe binnen 30 seconden. App Service draait zone-redundant met meerdere instanties. De backup-strategie brengt de RPO van 24 uur naar sub-uur en de RTO van 4–6 uur naar minder dan 30 minuten. 
+SQL Managed Instance faalt automatisch over naar een geo-replica in North Europe met RPO < 5 seconden en RTO < 30 seconden. De Recovery Services Vault GRS brengt de backup-strategie van RPO 24 uur naar sub-uur voor historische data via PITR 35 dagen.
 | **Security** |
 Geen enkele workload is rechtstreeks bereikbaar via het publieke internet. Al het verkeer passeert langs Azure Firewall Premium met IDPS. PaaS-diensten zijn alleen bereikbaar via Private Endpoints. Gebruikers authenticeren via MFA en beheerders krijgen tijdelijke toegang via PIM — nooit permanente admin-rollen.
 | **Cost Optimization** |
-ExpressRoute (€500–800/mnd) die ik eerst had voorzien is vervangen door een VPN Gatewayv2 (€200-300/mnd) — ruim voldoende voor de nachtelijke SAP-batch. Batchjobs draaien als Azure Functions die alleen kosten bij uitvoering. In de NonProd-omgeving gaan VMs automatisch uit om 20:00. Budget Alerts voorkomen verrassende facturen en kunnen we sneller handelen wanneer er onverwachte pieken voorkomen.
+ExpressRoute werd overwogen maar verworpen omdat VPN Gateway VpnGw2 (~€268/mnd) voldoende bandbreedte biedt voor Contoso's workload — ruim voldoende voor de nachtelijke SAP-batch. Batchjobs draaien als Azure Functions die alleen kosten bij uitvoering. In de NonProd-omgeving gaan VMs automatisch uit om 20:00. Budget Alerts voorkomen verrassende facturen en kunnen we sneller handelen wanneer er onverwachte pieken voorkomen.
 | **Operational Excellence** | 
 Patchbeheer is volledig geautomatiseerd — PaaS-diensten worden door Microsoft gepatcht, VMs via Azure Update Manager. Deployments verlopen via CI/CD-pipelines met een staging-slot, zodat elke release gevalideerd is vóór de productie-swap. Azure Monitor signaleert problemen proactief, vóór de eindgebruiker iets merkt.
 | **Performance Efficiency** | 
