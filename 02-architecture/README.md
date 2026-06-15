@@ -23,7 +23,7 @@ Ontwerp de volledige Azure-architectuur voor de gemigreerde Contoso-applicatie. 
 Een **Platform Landing Zone** is de funderende infrastructuur die alle workloads ondersteunt. Ze bestaat uit gedeelde services (hub networking, identity, monitoring) en de governance-structuur die consistentie afdwingt over alle subscriptions.
 
 ### structuur
-<img width="2184" height="2268" alt="image" src="https://github.com/user-attachments/assets/f6cfedbe-4b0c-40e0-857a-bc080282228f" />
+<img width="2769" height="3280" alt="azure_alz_hub_spoke" src="https://github.com/user-attachments/assets/528c6b88-3278-4be5-b90b-f373ec448075" />
 
 Tenant Root Group
 └── Contoso Manufacturing (MG)
