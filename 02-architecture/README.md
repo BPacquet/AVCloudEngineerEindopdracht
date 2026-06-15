@@ -134,12 +134,6 @@ SSL termination
 
 een application gateway met SSL termination helpt om webverkeer veilig en efficiënt te verwerken. Het beschermt tegen veelvoorkomende aanvallen zoals SQL injection, XSS en andere webgebasseerde attacks door inkomend verkeer eerst te inspecteren en te filteren voordat het de backend bereikt. 
 
-Azure front door
-Wat zit hierin?
-Globale entry point
-CDN + Caching
-Load balancing over regio's
-DDoS bescherming.
 
 ### diagram vereisten (Platform LZ)
 
