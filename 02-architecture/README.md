@@ -288,7 +288,7 @@ De omgeving is ontworpen zonder enkelvoudige storingspunten. SQL Managed Instanc
 | **Security** |
 Geen enkele workload is rechtstreeks bereikbaar via het publieke internet. Al het verkeer passeert langs Azure Firewall Premium met IDPS. PaaS-diensten zijn alleen bereikbaar via Private Endpoints. Gebruikers authenticeren via MFA en beheerders krijgen tijdelijke toegang via PIM — nooit permanente admin-rollen.
 | **Cost Optimization** |
-ExpressRoute (€200–800/mnd) die ik eerst had voorzien is vervangen door een VPN Gateway (€25–140/mnd) — ruim voldoende voor de nachtelijke SAP-batch. Batchjobs draaien als Azure Functions die alleen kosten bij uitvoering. In de NonProd-omgeving gaan VMs automatisch uit om 20:00. Budget Alerts voorkomen verrassende facturen en kunnen we sneller handelen wanneer er onverwachte pieken voorkomen.
+ExpressRoute (€500–800/mnd) die ik eerst had voorzien is vervangen door een VPN Gatewayv2 (€200-300/mnd) — ruim voldoende voor de nachtelijke SAP-batch. Batchjobs draaien als Azure Functions die alleen kosten bij uitvoering. In de NonProd-omgeving gaan VMs automatisch uit om 20:00. Budget Alerts voorkomen verrassende facturen en kunnen we sneller handelen wanneer er onverwachte pieken voorkomen.
 | **Operational Excellence** | 
 Patchbeheer is volledig geautomatiseerd — PaaS-diensten worden door Microsoft gepatcht, VMs via Azure Update Manager. Deployments verlopen via CI/CD-pipelines met een staging-slot, zodat elke release gevalideerd is vóór de productie-swap. Azure Monitor signaleert problemen proactief, vóór de eindgebruiker iets merkt.
 | **Performance Efficiency** | 
