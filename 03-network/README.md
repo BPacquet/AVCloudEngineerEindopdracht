@@ -463,9 +463,9 @@ ExpressRoute
 
 Conclusie (belangrijk)
 
-Er is gekozen voor VpnGw1 omdat Contoso enkel beheer- en synchronisatieverkeer over de tunnel stuurt. De bandbreedte en latency van VPN zijn ruim voldoende en veel goedkoper dan ExpressRoute, waardoor een dedicated circuit geen meerwaarde heeft in deze fase.
+Er is gekozen voor VpnGw2 omdat Contoso enkel beheer- en synchronisatieverkeer over de tunnel stuurt en vpngw2 een max doorvoer van 1 Gbps geeft.De VpnGw1 zal in ons geval te weinig doorvoer hebben, bij een gelijktijdige backup van de drie sites zouden het al beginnen knellen. De bandbreedte en latency van VPNGw2 zijn ruim voldoende en veel goedkoper dan ExpressRoute, waardoor een dedicated circuit geen meerwaarde heeft in deze fase.
 
-Op het diagram staat toch ExpressRoute getekend omdat de architectuur future-ready is: de hub-spoke setup en gateway subnet zijn al voorbereid zodat ExpressRoute later eenvoudig kan worden toegevoegd als SAP of andere workloads naar Azure verhuizen of als er grote datastromen bijkomen.
+De hub-spoke setup en gateway subnet zijn al voorbereid zodat ExpressRoute later eenvoudig kan worden toegevoegd als SAP of andere workloads naar Azure verhuizen of als er grote datastromen bijkomen.
 ## wat je inlevert
 
 ```
