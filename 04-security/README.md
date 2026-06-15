@@ -54,8 +54,6 @@ Wijs de **Azure Security Benchmark** initiative toe op Management Group-niveau. 
   "description": "Enforces the presence of the 'Environment' tag on all resources.",
   "policyRule": {
     "if": {
-      "allOf": [
-        {
           "field": "tags['Environment']",
           "exists": "false"
         }
@@ -92,7 +90,7 @@ Documenteer de **RBAC-toewijzingen** voor elke persona die met de Contoso-omgevi
 | Cloud Platform Engineer | `Contributor` | Management Subscription | Beheert monitoring/automation |
 | Application Developer | `Contributor` | Resource Groups in NonProd | Deploy nieuwe versies |
 | Application Developer | `Reader` | Resource Groups in Prod | Read-only in productie |
-| DevOps/CI-CD Service Principal | `Contributor` | Workload Subscription (beperkt) | IaC deployments |
+| DevOps/CI-CD Service Principal | `Contributor` | Workload Subscription (beperkt) | IaC deployments scope beperkt tot rg-contoso-pro en rg-contoso nonprod- Niet op subscription niveau |
 | Security Analyst | `Security Reader` | Management Group root | Audit Defender for Cloud |
 | Backup Operator | `Backup Contributor` | Workload Subscription | Beheer backups |
 | SAP Integration Service | `Storage Blob Data Reader` | Storage Account (specifiek) | Lees rapporten |
@@ -1063,7 +1061,7 @@ Als bij het incident **persoonsgegevens** betrokken zijn (gebruikersdata, SAP ER
 | Actie | Termijn | Ontvanger |
 |---|---|---|
 | Intern melden aan DPO | Direct bij detectie | dpo@contoso.be |
-| Melding aan GBA | Binnen 72 uur | www.gegevensbeschermingsautoriteit.be |
+| Melding aan GBA | Binnen 72 uur |contact@toezichtcommissie.be |
 | Betrokkenen informeren | Indien hoog risico — zo snel mogelijk | Getroffen gebruikers/medewerkers |
 
 > De 72u-termijn voor GBA-melding loopt **parallel** aan de NIS2-termijnen, niet na afloop.
@@ -1078,17 +1076,12 @@ Als bij het incident **persoonsgegevens** betrokken zijn (gebruikersdata, SAP ER
 - [GBA — Melding datalek](https://www.gegevensbeschermingsautoriteit.be/burger/themas/datalek-melden)
 - [ENISA — Good practices for incident response](https://www.enisa.europa.eu/topics/incident-response)
 
----
-
-*Versie 1.0 · team-cloud@contoso.be · West Europe 2025 · INTERN — vertrouwelijk*
-
-
 ```
 Incident detectie (Defender for Cloud / Sentinel alert)
     │
     ▼ (binnen 24 uur)
 Initiële melding aan CCB (Centrum voor Cybersecurity België)
-via https://ccb.belgium.be/nl/meld-een-incident
+via contact@toezichtcommissie.be
     │
     ▼ (binnen 72 uur)
 Gedetailleerde melding met impact en maatregelen
