@@ -221,12 +221,12 @@ Alle 31 resources uit de Platform Landing Zone en Application Platform. Prijzen 
 |---|---|---:|---:|
 | Azure Firewall Premium | Premium · IDPS · TLS-inspectie | € 912 | € 10.944 |
 | Application Gateway WAF v2 | WAF_v2 · 1 inst. · 10 CU · SSL-offload | € 365 | € 4.380 |
-| VPN Gateway VpnGw2 | Route-based · BGP · IKEv2 · S2S × 3 | € 268 | € 3.216 |
+| VPN Gateway VpnGw2 | Route-based · BGP · IKEv2 · S2S × 3 | € 370 | € 3.216 |
 | Azure Bastion Basic | Basic tier · SSH/RDP via browser | € 139 | € 1.668 |
 | Public IP (pip-agw-prd) | Standard SKU · static | € 4 | € 48 |
 | Egress bandbreedte | ~500 GB/mnd · €0,087/GB | € 43 | € 516 |
 | VNet Peering | Hub↔Prod + Hub↔NonProd | € 3 | € 36 |
-| **Subtotaal Netwerk** | | **€ 1.734** | **€ 20.808** |
+| **Subtotaal Netwerk** | | **€ 1.844** | **€ 20.918** |
 
 ### Compute
 
@@ -238,7 +238,7 @@ Alle 31 resources uit de Platform Landing Zone en Application Platform. Prijzen 
 | DC Replica vm-dc-01 | Standard_B2ms · Windows Server 2022 | € 70 | € 840 |
 | DC Replica vm-dc-02 | Standard_B2ms · Windows Server 2022 | € 70 | € 840 |
 | **Subtotaal Compute** | | **€ 1.376** | **€ 16.512** |
-
+Azure Functions Eerste: 1 miljoen uitvoeringen/mnd gratis — kost enkel bij overschrijding.
 ### Database
 
 | Resource | SKU / Configuratie | Prijs/mnd | Prijs/jaar |
@@ -263,7 +263,7 @@ Alle 31 resources uit de Platform Landing Zone en Application Platform. Prijzen 
 | Microsoft Entra ID P1 | P1 · 450 gebruikers · MFA + CA + PIM | € 2.700 | € 32.400 |
 | Entra Connect Sync | PHS · staging server | € 0 | € 0 |
 | **Subtotaal Identiteit** | | **€ 2.700** | **€ 32.400** |
-
+Contoso heeft geen actief M365 E3/E5-abonnement. Indien wel: Entra ID P1 is inbegrepen en kost €0 extra.
 ### Security
 
 | Resource | SKU / Configuratie | Prijs/mnd | Prijs/jaar |
@@ -310,7 +310,7 @@ Alle 31 resources uit de Platform Landing Zone en Application Platform. Prijzen 
 | Security | € 130 | 0,6% |
 | Monitoring | € 575 | 5,8% |
 | Integratie | € 9 | 0,1% |
-| **Subtotaal Prod** | **€ 9.614** | |
+| **Subtotaal Prod** | **€ 9.850** | |
 
 ### NonProd (Contoso-NonProd subscriptie — Dev/Test pricing)
 
@@ -402,10 +402,9 @@ Contoso heeft Windows Server Datacenter SA en SQL Server Enterprise SA — beide
 
 **AHB activeren in Bicep:**
 ```bicep
-resource appService 'Microsoft.Web/sites@2022-09-01' = {
+resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
   properties: {
-    siteConfig: {
-      windowsFxVersion: 'DOTNET|4.8'
+    reserved: false'
     }
   }
 }
@@ -524,8 +523,6 @@ Onderstaande onzekerheden kunnen de werkelijke kosten doen afwijken van de insch
 - [Azure Landing Zone v2](https://learn.microsoft.com/azure/cloud-adoption-framework/ready/landing-zone/)
 - [NIS2-richtlijn (2022/2555)](https://eur-lex.europa.eu/legal-content/NL/TXT/?uri=CELEX%3A32022L2555)
 
----
 
-*Versie 1.0 · team-cloud@contoso.be · West Europe 2025 · INTERN — vertrouwelijk*
 
 ---
