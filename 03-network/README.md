@@ -15,7 +15,8 @@ Ontwerp het volledige Azure-netwerk voor de Contoso-migratie. Je documenterrt he
 
 ### topologie: hub-spoke
 
-<img width="1472" height="1360" alt="image" src="https://github.com/user-attachments/assets/dd1413bc-8428-449b-8022-a857c7bef41e" />
+<img width="2736" height="3920" alt="contoso_hub_spoke_topology" src="https://github.com/user-attachments/assets/33d9c798-60dc-4c03-abd5-3d5668f44eb4" />
+
 
 ---
 
