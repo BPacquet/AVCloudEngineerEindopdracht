@@ -83,6 +83,7 @@ Documenteer de **minimaal vereiste NSG-regels** per subnet. Gebruik onderstaande
 | 100 | Allow-AppGW-to-Web | Inbound | TCP | snet-spoke-appgw | `*` | 443 | Allow |
 | 200 | Allow-Web-to-Data | Outbound | TCP | `*` | snet-spoke-data | 1433 | Allow |
 | 300 | Allow-Web-to-KV | Outbound | TCP | `*` | snet-spoke-data | 443 | Allow |
+| 310 | Allow-Web-to-SB | Outbound | TCP |'*' | snet-spoke-data | 5671, 5672 | Allow |
 | ... | ... | ... | ... | ... | ... | ... | ... |
 | 4096 | Deny-All | Inbound | `*` | `*` | `*` | `*` | Deny |
 
@@ -345,21 +346,6 @@ DC01 Gent                            DNS Private Resolver
 6. azure firewall regels
 
 Documenteer de **minimaal vereiste Azure Firewall regels**:
-
-## RC-NAT-Inbound — DNAT regels
-
-**Type:** DNAT | **Doel:** inkomend publiek verkeer omzetten naar interne resources
-
-> ℹ️ De Application Gateway (`agw-contoso-prd-001`) heeft een **eigen publiek IP** (`pip-agw-prd`).
-> Extern HTTPS-verkeer van gebruikers gaat direct naar de AGW — niet via het Firewall-IP.
-> DNAT is hier beschikbaar als alternatief routing-pad.
-
-| Prio | Naam | Protocol | Bron | Doel | Poort | Actie |
-|:---:|---|:---:|---|---|:---:|---|
-| 100 | `DNAT-HTTPS-to-AGW` | TCP | Internet (`*`) | pip-agw-prd | 443 | DNAT → 10.20.0.4 |
-
----
-
 ## RC-NET-HubSpoke — Network regels
 
 **Type:** Network | **Doel:** IP/poort-gebaseerde filtering voor VNet-naar-VNet en VPN-verkeer
@@ -417,7 +403,7 @@ Documenteer de **minimaal vereiste Azure Firewall regels**:
 | 9999 | `APP-Deny-All` | HTTPS/HTTP | `*` | `*` | 80, 443 | 🚫 Deny |
 
 
-DNAT: geen — inbound verkeer gaat via Application Gateway WAF v2 (pip-agw-prd), Azure Firewall is enkel voor egress en east-west verkeer.
+Inbound gebruikersverkeer loopt via de Application Gateway (pip-agw-prd) — niet via Azure Firewall.
 
 AD Replication en DC-RPC zijn nodig zodat de domain controller in Azure kan blijven synchroniseren met de on-prem DC in Gent. Zonder deze regels stopt Entra Connect en werkt AD-authenticatie niet meer bij VPN-uitval.
 SqlMI-Management is nodig voor SQL Managed Instance om met Azure beheerdiensten te communiceren via de service tag. Dit werkt samen met de route die SQL management verkeer buiten de firewall om laat lopen
@@ -438,10 +424,10 @@ VPN vs ExpressRoute
 | Aspect           | VPN Gateway (huidig)           | ExpressRoute                            |
 | ---------------- | ------------------------------ | --------------------------------------- |
 | Type verbinding  | Over internet (versleuteld)    | Privé dedicated lijn                    |
-| Bandbreedte      | ±650 Mbps (meer dan voldoende) | 50 Mbps tot multi-Gbps                  |
+| Bandbreedte      | 1 Gbps (meer dan voldoende) | 50 Mbps tot multi-Gbps                  |
 | Gebruik Contoso  | Alleen beheer + synchronisatie | Grote datastromen en kritieke workloads |
 | Latency          | ~8–15 ms                       | Lager en stabieler (minder jitter)      |
-| Kost             | ±€180/maand                    | ±€500–€1800/maand                       |
+| Kost             | ±€280/maand                    | ±€500–€1800/maand                       |
 | Complexiteit     | Laag                           | Hoog                                    |
 | Nood bij Contoso | ✔ Volstaat                     | ❌ Niet nodig in huidige situatie        |
 
@@ -466,6 +452,7 @@ Conclusie (belangrijk)
 Er is gekozen voor VpnGw2 omdat Contoso enkel beheer- en synchronisatieverkeer over de tunnel stuurt en vpngw2 een max doorvoer van 1 Gbps geeft.De VpnGw1 zal in ons geval te weinig doorvoer hebben, bij een gelijktijdige backup van de drie sites zouden het al beginnen knellen. De bandbreedte en latency van VPNGw2 zijn ruim voldoende en veel goedkoper dan ExpressRoute, waardoor een dedicated circuit geen meerwaarde heeft in deze fase.
 
 De hub-spoke setup en gateway subnet zijn al voorbereid zodat ExpressRoute later eenvoudig kan worden toegevoegd als SAP of andere workloads naar Azure verhuizen of als er grote datastromen bijkomen.
+
 ## wat je inlevert
 
 ```
