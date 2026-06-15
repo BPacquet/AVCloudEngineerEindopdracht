@@ -268,9 +268,9 @@ Voor de volgende keuzes schrijf je een korte **ADR (Architecture Decision Record
 
 | | VPN Gateway | ExpressRoute |
 |---|---|---|
-| Bandbreedte | Tot 10 Gbps | 50 Mbps – 100 Gbps |
+| Bandbreedte | Tot 1 Gbps | 50 Mbps – 100 Gbps |
 | Latency | Variabel (internet) | Laag (dedicated circuit) |
-| Kost | Laag (€140–€700/mnd) | Hoog (€500–€5000+/mnd) |
+| Kost | Laag (€200-300/mnd) | Hoog (€500–€5000+/mnd) |
 | Gebruik | Dev/test, lagere eisen | Productie, hoge eisen |
 
 **Vul in**: Welke kies jij voor Contoso? Motiveer.
